@@ -24,6 +24,16 @@ function applyAuthUI(){
   if(loginBtn) loginBtn.style.display = AUTH_USER ? 'none' : '';
   if(logoutBtn) logoutBtn.style.display = AUTH_USER ? '' : 'none';
 }
+function applyTheme(){
+  const stored = (localStorage.getItem('lb_theme')||'dark');
+  document.documentElement.setAttribute('data-bs-theme', stored);
+}
+applyTheme();
+document.getElementById('darkToggle')?.addEventListener('click', ()=>{
+  const next = document.documentElement.getAttribute('data-bs-theme')==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-bs-theme', next);
+  localStorage.setItem('lb_theme', next);
+});
 let saveTimer=null;
 // Schema helpers
 function schemaFor(key){ return (CATEGORIES[key]||{}).schema || "knockout"; }
