@@ -1,0 +1,9 @@
+tools:
+  task:
+    enabled: true
+    maxConcurrency: 4
+
+modelRoles:
+  planner: "koding-harian"
+  coder: "koding-harian"
+  reviewer: "koding-harian"
