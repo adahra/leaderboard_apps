@@ -23,23 +23,25 @@ Daftar kandidat fitur baru berdasarkan audit kode `leaderboard_apps`. Semua bers
 - Frontend: tombol "Arsip"/"Pulihkan" di tabel Pengaturan + toggle "Tampilkan kategori terarsip"; tombol "Arsipkan" di modal kategori.
 - Rate limiting login: 5 percobaan gagal per IP per 15 menit → HTTP 429; counter reset saat login sukses.
 - Pencarian tim: input `#teamSearch` di view Data Tim, filter nama/peserta sebelum render (index asli tetap dipakai untuk edit/hapus).
-
+**Batch 3 — selesai:**
+- Tabel `audit_log` (+ index `idx_audit_log_created`) + helper `db.logAudit`; insert di mutasi kategori/tim/hasil/settings/auth; endpoint `GET /api/audit` (admin).
+- Tie-breaking junior44: setelah poin, selisih gol, menang, tambah head-to-head (pemenang langsung menang tie-break).
+- Knockout jumlah ganjil: babak pertama otomatis bye untuk tim terakhir; badge AUTO BYE + winner auto.
 
 | # | Fitur | Deskripsi | Pendekatan saran |
 |---|-------|-----------|------------------|
 | 4 | Soft delete / arsip kategori ✅ | `deleteCategory` hard delete dan diblokir jika masih ada tim. | Tambah kolom `archived` boolean pada `categories`; `getCategories` filter default `archived=0`; endpoint baru `PATCH /api/categories/:key/archive`. |
-| 5 | Aturan tie-breaking | Ranking `junior44` hanya poin, belum ada penyeimbang (selisih gol, head-to-head). | Logika `juniorRankMap` / `juniorLeaderboardIds` di `app.js` tambah perhitungan selisih gol dan head-to-head. |
-| 6 | Bye untuk jumlah ganjil knockout | `knockout` asume pohon sempurna (2^n); belum ditangani jika count ganjil. | `getMatches` / `generateDefaultTeams` tambah mekanisme bye di babak pertama. |
+| 5 | Aturan tie-breaking ✅ | Ranking `junior44` hanya poin, belum ada penyeimbang (selisih gol, head-to-head). | Logika `juniorRankMap` / `juniorLeaderboardIds` di `app.js` tambah perhitungan selisih gol dan head-to-head. |
+| 6 | Bye untuk jumlah ganjil knockout ✅ | `knockout` asume pohon sempurna (2^n); belum ditangani jika count ganjil. | `getMatches` / `generateDefaultTeams` tambah mekanisme bye di babak pertama. |
 
 ## Auth & Keamanan (`auth`)
 
 | # | Fitur | Deskripsi | Pendekatan saran |
 |---|-------|-----------|------------------|
 | 7 | Reset password | Tidak ada alur lupa password. | Endpoint `POST /api/auth/forgot-password` + token reset sementara; frontend form sederhana. |
-| 7b | Daftar & cabut sesi aktif | Tabel `sessions` ada tapi tidak ada endpoint manajemen. | `GET /api/auth/sessions` (daftar), `DELETE /api/auth/sessions/:token` (cabut), hanya admin. |
+| 10 | Audit log ✅ | Tidak ada catatan siapa mengubah data kapan. | Tabel `audit_log` (actor, action, target, created_at); insert di controller mutasi utama. |
 | 8 | Rate limiting login ✅ | Tidak ada batasan percobaan login. | Middleware sederhana (in-memory map IP → hit count + waktu) di route `/auth/login`. |
 | 9 | CORS | Tidak dikonfigurasi; risiko jika diakses dari domain lain. | Tambah `cors` atau header manual di `backend/server.js`. |
-| 10 | Audit log | Tidak ada catatan siapa mengubah data kapan. | Tabel `audit_log` (actor, action, target, created_at); insert di controller mutasi utama. |
 
 ## Frontend UX (`app.js`, `index.html`)
 
@@ -61,10 +63,11 @@ Daftar kandidat fitur baru berdasarkan audit kode `leaderboard_apps`. Semua bers
 
 ## Prioritas disarankan (mulai dari sini)
 
-1. **Audit log** (#10) — sebagian sudah tercakup `result_history` untuk hasil pertandingan.
-2. **Tie-breaking** (#5) — ranking junior44.
-3. **Bye knockout** (#6) — jumlah ganjil.
-4. **Foto/logo tim** (#15) — opsional.
+1. **Foto/logo tim** (#15) — opsional.
+2. **Backup / restore DB** (#16).
+3. **Halaman pengaturan global** (#17).
+4. **CORS** (#9) — jika diakses lintas domain.
+5. **Daftar & cabut sesi aktif** (#7b) — manajemen sesi admin.
 
 ## Catatan
 

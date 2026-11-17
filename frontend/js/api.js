@@ -108,7 +108,7 @@ const API = {
     this.setToken('');
   },
 
-  async me() {
-    return this.request('/api/auth/me');
-  }
+  async getAudit(limit = 100) {
+    return this.request(`/api/audit?limit=${limit}`);
+  },
 };

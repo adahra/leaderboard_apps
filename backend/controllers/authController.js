@@ -86,7 +86,6 @@ exports.requireAdmin = requireAdmin;
 exports.getSessionUser = getSessionUser;
 
 exports.login = (req, res) => {
-  if (!checkLoginRateLimit(req, res)) return;
   try {
     const { username, password } = req.body || {};
     if (!username || !password) return res.status(400).json({ error: 'Username dan password wajib diisi.' });
@@ -95,6 +94,7 @@ exports.login = (req, res) => {
     const hash = hashPassword(password, user.salt);
     if (hash !== user.password_hash) { recordLoginFailure(req); return res.status(401).json({ error: 'Username atau password salah.' }); }
     clearLoginAttempts(req);
+    db.logAudit(user.username, 'auth.login', user.username, null);
     const token = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     db.prepare('INSERT INTO sessions (token, user_id, expires_at) VALUES (?,?,?)').run(token, user.id, expires);

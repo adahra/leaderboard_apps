@@ -25,6 +25,7 @@ exports.updateSettings = (req, res) => {
       Object.entries(body).forEach(([k, v]) => up.run(k, JSON.stringify(v)));
     });
     tx();
+    db.logAudit(req.user?.username || 'system', 'settings.update', 'settings', JSON.stringify(Object.keys(body)));
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

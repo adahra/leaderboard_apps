@@ -80,6 +80,15 @@ CREATE TABLE IF NOT EXISTS result_history (
   changed_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_result_history_cat_match ON result_history (category, match_id);
+CREATE TABLE IF NOT EXISTS audit_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  actor TEXT,
+  action TEXT NOT NULL,
+  target TEXT,
+  detail TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log (created_at);
 `);
 
 // ---- Migration: buang CHECK(category IN ('junior','senior)) agar kategori custom diperbolehkan ----
@@ -141,5 +150,11 @@ function seedUser(username, password, role) {
 }
 seedUser('admin', 'admin', 'admin');
 seedUser('user', 'user', 'user');
-
+db.logAudit = function (actor, action, target, detail) {
+  try {
+    db.prepare('INSERT INTO audit_log (actor, action, target, detail) VALUES (?,?,?,?)').run(actor || 'system', action, target || null, detail || null);
+  } catch (e) {
+    console.error('audit log gagal:', e.message);
+  }
+};
 module.exports = db;

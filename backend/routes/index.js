@@ -1,13 +1,13 @@
 const express = require('express');
-const db = require('../config/db');
-
 const router = express.Router();
+const db = require('../config/db');
 
 const teamsRoutes = require('./teams');
 const resultsRoutes = require('./results');
 const settingsRoutes = require('./settings');
 const categoriesRoutes = require('./categories');
 const authRoutes = require('./auth');
+const auth = require('../controllers/authController');
 
 router.get('/health', (req, res) => {
   try {
@@ -19,6 +19,15 @@ router.get('/health', (req, res) => {
 });
 
 router.use('/auth', authRoutes);
+router.get('/audit', auth.requireAdmin, (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit, 10) || 100, 500);
+    const rows = db.prepare('SELECT id,actor,action,target,detail,created_at FROM audit_log ORDER BY id DESC LIMIT ?').all(limit);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 router.use('/teams', teamsRoutes);
 router.use('/results', resultsRoutes);
 router.use('/settings', settingsRoutes);

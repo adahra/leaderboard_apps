@@ -45,6 +45,7 @@ exports.updateResults = (req, res) => {
       });
     });
     tx();
+    db.logAudit(changedBy, 'results.update', cat, JSON.stringify({ matches: Object.keys(results).length }));
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

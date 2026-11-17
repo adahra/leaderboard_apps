@@ -33,6 +33,7 @@ exports.createCategory = (req, res) => {
     const cnt = isEmpty ? 0 : (Number.isFinite(parsedCount) && parsedCount > 0 ? parsedCount : (schema === 'junior44' ? 44 : 16));
     db.prepare('INSERT INTO categories (key,label,schema,team_count,sort_order) VALUES (?,?,?,?,?)').run(key, label, schema, cnt, Number(sort_order) || 0);
     if (!isEmpty) seedTeams(key, cnt, label.toUpperCase());
+    db.logAudit(req.user?.username, 'category.create', key, JSON.stringify({ label, schema, team_count: cnt }));
     res.json({ ok: true, key });
   } catch (err) {
     if (String(err.message).includes('UNIQUE constraint failed')) return res.status(409).json({ error: 'Kategori dengan key tersebut sudah ada.' });
@@ -52,6 +53,7 @@ exports.updateCategory = (req, res) => {
     const newCount = team_count !== undefined ? (Number.isFinite(Number(team_count)) ? Number(team_count) : cat.team_count) : cat.team_count;
     const newOrder = sort_order !== undefined ? (Number.isFinite(Number(sort_order)) ? Number(sort_order) : cat.sort_order) : cat.sort_order;
     db.prepare('UPDATE categories SET label=?, schema=?, team_count=?, sort_order=? WHERE key=?').run(newLabel, newSchema, newCount, newOrder, key);
+    db.logAudit(req.user?.username, 'category.update', key, JSON.stringify({ label: newLabel, schema: newSchema, team_count: newCount, sort_order: newOrder }));
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -66,6 +68,7 @@ exports.archiveCategory = (req, res) => {
       ? (req.body.archived === true || req.body.archived === 'true' || req.body.archived === 1 || req.body.archived === '1')
       : true;
     db.prepare('UPDATE categories SET archived=? WHERE key=?').run(archived ? 1 : 0, key);
+    db.logAudit(req.user?.username, 'category.archive', key, JSON.stringify({ archived }));
     res.json({ ok: true, archived });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -81,6 +84,7 @@ exports.deleteCategory = (req, res) => {
     if (cnt > 0) return res.status(400).json({ error: `Kategori masih memiliki ${cnt} tim. Hapus semua tim terlebih dahulu.` });
     db.prepare('DELETE FROM results WHERE category=?').run(key);
     db.prepare('DELETE FROM categories WHERE key=?').run(key);
+    db.logAudit(req.user?.username, 'category.delete', key, null);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

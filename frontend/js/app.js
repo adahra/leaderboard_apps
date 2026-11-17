@@ -154,10 +154,20 @@ function juniorLeaderboardIds(){
   const key=currentCategory;
   const stats=juniorSelectionStats();
   const n=teamCount(key);
+  const results=(state.results && state.results[key]) || {};
+  const directWin=new Map();
+  const m=Math.floor(n/2);
+  for(let i=1;i<=m;i++){
+    const rec=results['r44m'+i];
+    if(rec && rec.a && rec.b && rec.winner){ directWin.set(rec.winner, rec.winner===rec.a?rec.b:rec.a); }
+  }
   return Array.from({length:n},(_,i)=>i+1).sort((a,b)=>{
     const A=stats[a],B=stats[b];
-    return (B.points-A.points)||(B.diff-A.diff)||(B.wins-A.wins)||
-           (A.matchIndex-B.matchIndex)||(a-b);
+    const base=(B.points-A.points)||(B.diff-A.diff)||(B.wins-A.wins);
+    if(base!==0)return base;
+    if(directWin.get(a)===b)return -1;
+    if(directWin.get(b)===a)return 1;
+    return (A.matchIndex-B.matchIndex)||(a-b);
   });
 }
 function juniorRankMap(){

@@ -22,6 +22,7 @@ function updateTeams(req, res) {
       });
     });
     tx();
+    db.logAudit(req.user?.username, 'teams.update', cat, JSON.stringify({ count: teams.length }));
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -44,6 +45,7 @@ function deleteTeam(req, res) {
       });
     });
     tx();
+    db.logAudit(req.user?.username, 'team.delete', cat, JSON.stringify({ team_no: teamNo }));
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
