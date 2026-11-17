@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>UGOT COMPETITION 2026 — Junior 44 & Senior 16</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="header-top">
+    <img class="kot-logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAb8AAAG/CAYAAADIE9lyAAAy0ElEQVR4nO3de1SU97no8Yd5mWFEFBHHK5o4sYE6icFLVRSMmO1lizthTGp3Eq3G1bVjGnf3jp5jknNOTpb7cprSJD17bW/7rFaTxiRbm4ox0e2lUaIo0ahQDRRbg63gFRW5CMMML3P+GCcQFXiRmfkN4/ezFmsl8vK+P4aZ93mf3+0RAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADc46JUNyDYbDZbkt1uLx80aJCS6584cWJdWVnZC8G8hsPhuNK/f//E+Pj4YF7mjqqrq+Wrr74aWllZWdGZnxvYSyamDIsv6N0jWC3rupoGkdKz1WkXa+WLUF87NjZWHhnWw2uLa/rm3ywxWpvHuxv1b77f02r55t9vuNy3/ZtRPe7wMw0u9x3/vT1Wa/Qd/93lahKrNVoqLl6Xr87UFpWe94zuzHltNlvSQw89VK7ifR8pLly4IGVlZZ3+/EaCiA5+mZmZ3hdfXCpjxoyR2Fg1d9mSkhL5+7//+6vFxcX9gnH+559/3vvCCy/KwIH9g3F6Q3bt2iULFy40/F6a6oj3/vjx+yTlPquYxRXMpnWJR6xyrMwr727/o+QVV4fss5Iy2Fy4ePYDqVNH9ZZelpbXp7e17SbUuLztft/oMa31sJoMH9tag6u5Uz/b4GqWI2djZe3WUtl9vMpQA202W9Kbb75ZPnPmzLtqI3zq6xvkwIH9smbNGjl8+HBEx4NbRewva7PZkrZt+6Q8NbVTD5MB19BQL2+88VPJyckJ+Gs9f/5875tvvil9+/YTXdcDfXrDGhrq5a//epahD89UR7z3fy5IlrH3e6TZ47uxN+tNHfyUOh6JlZKLMbJizZdSeNYbks/L5ldHeScnR0mM5svawvn1CRT/67zgX48YyrSzs7O9b7/9C0lKGqr0vR8JdF2XvXt/J6+++mrQHtLD0Z37IyLAc889Vz527Dhxu90hvnLzt/7P7W6U8+fPB/wqdrt97eLFiyU+PkHB79hC03xdbWVlZUONHD93cpyMHNgoTa76oLYrUMxSLyMHisyadL+cPHtGgh2GFs3+jnfsd/uKufmcNN9D93Sz1MvY+03ygym2gn/bXtnhQ0Z1dbWI+G7cBL+uaBYRk0yfPlPy8/MTi4uLVTcoZO6uX6MbeOWVVxV/KEyiaWY5cuSIbNy4MeAZw1NPPbVEdVYr4gt+GzasFyNjBjPGJHgnPjTkm4ymu4jR3OKcZJNpYxK8wbxOymBz4RMT+0mCpTqYlwlbTa46+ckPHJJg4Nh9+/ZFHTiwP+htiny+EKBpmjzzzHyx2+1rFTcoZCIy+K1cudLbo0es8idCXffI9u3bA35eh8NxZdasWaL6d9Q0TUp...">
+    <div class="brand-copy">
+      <div class="brand-title">UGOT <span>COMPETITION</span></div>
+      <div class="brand-sub">ROBOG PLANET ACTION • YOGYAKOMTEK 2026 • TOURNAMENT CONTROL CENTER</div>
+    </div>
+    <div class="live-ready"><i></i> LIVE READY</div>
+    <button class="menu-toggle" id="menuToggle" onclick="toggleNav()">☰</button>
+  </div>
+  <nav id="mainNav">
+    <button class="active" onclick="view('bracket',this)">🏆 Bagan</button>
+    <button onclick="view('input',this)">✏️ Input Hasil</button>
+    <button onclick="view('leaderboard',this)">📊 Leaderboard</button>
+    <button onclick="view('champions',this)">🎉 Juara</button>
+    <button onclick="view('teams',this)">👥 Data Tim</button>
+    <button onclick="view('livestream',this)">📺 Live Stream</button>
+  <button onclick="view('pengaturan',this)">⚙️ Pengaturan</button>
+    <button onclick="fullscreen()">⛶ Fullscreen</button>
+  </nav>
+</header>
+<main>
+<section id="bracket" class="view active">
+  <div class="hero"><div><h1 id="bracketTitle">Bagan Knockout</h1><p id="bracketSubtitle">Pilih kategori untuk melihat bagan pertandingan.</p></div><button class="btn random-btn" onclick="randomizeTeams()">🎲 Random Tim</button></div>
+  <div class="category-bar" id="categoryBar"></div>
+  <div class="stats" id="stats"></div>
+  <div class="bracket-scroll"><div id="bracketEl" class="bracket"></div></div>
+</section>
+<section id="input" class="view">
+  <div class="hero"><div><h1>Input Hasil</h1><p>Skor tersimpan otomatis di browser dan pemenang masuk ke babak berikutnya.</p></div><button class="btn danger" onclick="resetResults()">🗑 Reset Hasil</button></div>
+  <div class="category-bar" id="inputCategoryBar"></div><div id="inputEl"></div>
+</section>
+<section id="leaderboard" class="view">
+  <div class="hero"><div><h1>Leaderboard</h1><p>Kategori junior44: semua tim diranking berdasarkan poin pertandingan awal; tim yang kalah tetap membawa poin dan berpeluang masuk 16 besar. Kategori knockout: pemenang maju, kalah keluar.</p></div></div>
+  <div class="category-bar" id="leaderCategoryBar"></div>
+  <div class="card"><table><thead><tr><th>#</th><th>Tim / Sekolah</th><th>Peserta</th><th>Skor</th><th>Status</th></tr></thead><tbody id="leaderEl"></tbody></table></div>
+</section>
+<section id="champions" class="view">
+  <div class="hero"><div><h1>Hasil Akhir</h1><p>Juara 1, 2, dan 3 ditentukan dari final dan perebutan juara 3.</p></div></div>
+  <div class="category-bar" id="champCategoryBar"></div>
+  <div class="champions">
+    <div class="podium second"><div class="rank">🥈</div><h2>JUARA 2</h2><div id="champ2" class="name">Belum ditentukan</div><div id="champ2Members" class="members"></div></div>
+    <div class="podium first"><div class="rank">🏆</div><h2>JUARA 1</h2><div id="champ1" class="name">Belum ditentukan</div><div id="champ1Members" class="members"></div></div>
+    <div class="podium third"><div class="rank">🥉</div><h2>JUARA 3</h2><div id="champ3" class="name">Belum ditentukan</div><div id="champ3Members" class="members"></div></div>
+  </div>
+</section>
+<section id="teams" class="view">
+  <div class="hero"><div><h1>Data Tim</h1><p>Data tim bisa diedit, ditambah, dikurangi, diimpor, atau diekspor. Semua disimpan di backend.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" onclick="saveTeams()">💾 Simpan Semua</button><button class="btn" onclick="openCategoryModal()">⚙️ Kelola Kategori</button><button class="btn danger" onclick="resetTeams()">↺ Kembalikan Default</button></div></div>
+  <div class="category-bar" id="teamCategoryBar"></div>
+  <div class="note" id="teamNote"></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+    <div class="note" style="margin:0;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <span>Jumlah Tim: <b id="teamCountLabel">-</b></span>
+      <input id="teamCountInput" type="number" min="1" max="128" style="width:80px;background:#050d18;color:#fff;border:1px solid #31506e;border-radius:8px;padding:7px 9px">
+      <button class="btn" onclick="applyTeamCount()">Terapkan Jumlah</button>
+      <button class="btn" onclick="addTeam()">+ Tambah Tim</button>
+      <button class="btn" onclick="removeTeam()">- Hapus Tim Terakhir</button>
+      <button class="btn" onclick="importTeamsJSON()">Import JSON</button>
+      <button class="btn" onclick="exportTeamsJSON()">Export JSON</button>
+    </div>
+  </div>
+  <div id="teamEditor" class="team-editor"></div>
+</section>
+<section id="livestream" class="view">
+  <div class="hero"><div><h1>Live Stream</h1><p>Masukkan link YouTube Live. Player akan tampil saat halaman dijalankan melalui hosting/server.</p></div></div>
+  <div class="live-grid">
+    <div class="live-player" id="youtubePlayer"><div class="live-safe"><div><div style="font-size:45px">📺</div><h3>Siap Menampilkan Live</h3><p>Masukkan URL YouTube Live di panel kanan.</p></div></div></div>
+    <div class="card live-settings">
+      <h2 style="margin-top:0">⚙️ Pengaturan Live</h2>
+      <div class="form-group"><label>Nama Event</label><input id="liveName" placeholder="UGOT COMPETITION 2026"></div>
+      <div class="form-group"><label>Keterangan</label><input id="liveMatch" placeholder="Junior — Final"></div>
+      <div class="form-group"><label>Link YouTube Live</label><input id="liveUrl" placeholder="https://www.youtube.com/watch?v=..."></div>
+      <div class="live-actions"><button class="btn primary" onclick="applyLive()">▶️ Tampilkan Live</button><button class="btn" onclick="openLive()">↗ Buka YouTube</button></div>
+      <div class="status-box" id="liveStatus">Status: belum ada link.</div>
+    </div>
+  </div>
+</section>
+</main>
+<section id="pengaturan" class="view">
+  <div class="hero"><div><h1>⚙️ Pengaturan</h1><p>Kelola kategori kompetisi: tambah, edit, atau hapus. Kategori baru bisa menggunakan schema `knockout` (N tim → knockout hingga final) atau `junior44` (44 tim → 22 match awal → ranking poin → TOP 16 → knockdown).</p></div></div>
+  <div class="category-bar" id="pengaturanCategoryBar"></div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <h2 style="margin:0">Daftar Kategori</h2>
+      <button class="btn primary" onclick="openCategoryModal()">+ Tambah Kategori</button>
+    </div>
+    <table>
+      <thead><tr><th>Key</th><th>Label</th><th>Schema</th><th>Jumlah Tim</th><th>Urutan</th><th>Aksi</th></tr></thead>
+      <tbody id="pengaturanTableBody"></tbody>
+    </table>
+  </div>
+</section>
+<div id="teamDetailBackdrop" class="team-detail-backdrop" onclick="closeTeamDetail(event)">
+  <div class="team-detail-modal" role="dialog" aria-modal="true" aria-labelledby="teamDetailTitle" onclick="event.stopPropagation()">
+    <div class="team-detail-head">
+      <div>
+        <div class="team-detail-kicker" id="teamDetailKicker">DATA TIM</div>
+        <div class="team-detail-title" id="teamDetailTitle">Nama Tim</div>
+      </div>
+      <button class="team-detail-close" type="button" aria-label="Tutup" onclick="closeTeamDetail()">✕</button>
+    </div>
+    <div class="team-detail-body">
+      <div class="team-detail-grid">
+        <div class="team-detail-item"><div class="team-detail-label">Nomor / Seed</div><div class="team-detail-value" id="teamDetailNo">—</div></div>
+        <div class="team-detail-item"><div class="team-detail-label">Kategori</div><div class="team-detail-value" id="teamDetailCategory">—</div></div>
+        <div class="team-detail-item full"><div class="team-detail-label">Sekolah / Tim</div><div class="team-detail-value" id="teamDetailSchool">—</div></div>
+        <div class="team-detail-item"><div class="team-detail-label">Peserta 1</div><div class="team-detail-value" id="teamDetailP1">—</div></div>
+        <div class="team-detail-item"><div class="team-detail-label">Peserta 2</div><div class="team-detail-value" id="teamDetailP2">—</div></div>
+      </div>
+      <div class="team-detail-actions"><button class="btn" type="button" onclick="closeTeamDetail()">Tutup</button></div>
+    </div>
+  </div>
+</div>
+<div id="categoryModalBackdrop" class="team-detail-backdrop" onclick="closeCategoryModal(event)">
+  <div class="team-detail-modal" role="dialog" aria-modal="true" aria-labelledby="categoryModalTitle" onclick="event.stopPropagation()">
+    <div class="team-detail-head">
+      <div>
+        <div class="team-detail-kicker" id="categoryModalKicker">KATEGORI</div>
+        <div class="team-detail-title" id="categoryModalTitle">Kelola Kategori</div>
+      </div>
+      <button class="team-detail-close" type="button" aria-label="Tutup" onclick="closeCategoryModal()">✕</button>
+    </div>
+    <div class="team-detail-body">
+      <div class="team-detail-grid">
+        <div class="team-detail-item full">
+          <div class="team-detail-label">Mode</div>
+          <div class="team-detail-value" id="categoryModalMode">Buat Baru</div>
+        </div>
+        <div class="team-detail-item"><div class="team-detail-label">Key</div><div class="team-detail-value"><input id="catKeyInput" style="width:100%;background:#050d18;color:#fff;border:1px solid #31506e;border-radius:8px;padding:7px 9px" placeholder="contoh: senior8"></div></div>
+        <div class="team-detail-item"><div class="team-detail-label">Label</div><div class="team-detail-value"><input id="catLabelInput" style="width:100%;background:#050d18;color:#fff;border:1px solid #31506e;border-radius:8px;padding:7px 9px" placeholder="contoh: SENIOR 8"></div></div>
+        <div class="team-detail-item"><div class="team-detail-label">Schema</div><div class="team-detail-value">
+          <select id="catSchemaInput" style="width:100%;background:#050d18;color:#fff;border:1px solid #31506e;border-radius:8px;padding:7px 9px">
+            <option value="knockout">knockout</option>
+            <option value="junior44">junior44</option>
+          </select>
+        </div></div>
+        <div class="team-detail-item"><div class="team-detail-label">Jumlah Tim</div><div class="team-detail-value"><input id="catCountInput" type="number" min="0" max="128" style="width:100%;background:#050d18;color:#fff;border:1px solid #31506e;border-radius:8px;padding:7px 9px"></div></div>
+        <div class="team-detail-item full"><div class="team-detail-value"><label style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="catEmptyInput" style="width:auto"> Buat kosong (tanpa mengisi tim default)</label></div></div>
+        <div class="team-detail-item"><div class="team-detail-label">Urutan</div><div class="team-detail-value"><input id="catOrderInput" type="number" min="0" style="width:100%;background:#050d18;color:#fff;border:1px solid #31506e;border-radius:8px;padding:7px 9px"></div></div>
+      </div>
+      <div class="team-detail-actions" style="justify-content:space-between">
+        <button class="btn" type="button" onclick="closeCategoryModal()">Batal</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn danger" type="button" id="categoryDeleteBtn" onclick="deleteCategory()" style="display:none">Hapus</button>
+          <button class="btn primary" type="button" onclick="saveCategory()">Simpan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

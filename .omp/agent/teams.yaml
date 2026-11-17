@@ -1,0 +1,13 @@
+default:
+  - planner
+  - coder
+  - reviewer
+
+fullstack:
+  - planner
+  - backend-dev
+  - frontend-dev
+  - reviewer
+
+audit:
+  - reviewer

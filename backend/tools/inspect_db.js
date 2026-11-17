@@ -1,0 +1,13 @@
+const Database = require('better-sqlite3');
+const path = require('path');
+const dbPath = path.resolve(__dirname, '../../data/leaderboard.db');
+const db = new Database(dbPath, { fileMustExist: true });
+console.log('tables:', db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r => r.name));
+console.log('teams:', db.prepare('SELECT count(*) c FROM teams').get().c);
+console.log('results:', db.prepare('SELECT count(*) c FROM results').get().c);
+console.log('settings:', db.prepare('SELECT count(*) c FROM settings').get().c);
+console.log('junior:', db.prepare("SELECT count(*) c FROM teams WHERE category='junior'").get().c);
+console.log('senior:', db.prepare("SELECT count(*) c FROM teams WHERE category='senior'").get().c);
+console.log('sample teams:', db.prepare('SELECT team_no,name,p1,p2,group_name FROM teams LIMIT 5').all());
+console.log('settings rows:', db.prepare('SELECT * FROM settings').all());
+console.log('sample results:', db.prepare('SELECT * FROM results LIMIT 5').all());

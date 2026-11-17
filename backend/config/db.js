@@ -1,0 +1,89 @@
+const Database = require('better-sqlite3');
+const path = require('path');
+const fs = require('fs');
+
+const DATA_DIR = path.resolve(__dirname, '../../data');
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+const dbPath = path.join(DATA_DIR, 'leaderboard.db');
+const db = new Database(dbPath);
+db.pragma('journal_mode = WAL');
+
+// ---- Schema ----
+db.exec(`
+CREATE TABLE IF NOT EXISTS teams (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  category TEXT NOT NULL,
+  team_no INTEGER NOT NULL,
+  name TEXT DEFAULT '',
+  p1 TEXT DEFAULT '',
+  p2 TEXT DEFAULT '',
+  group_name TEXT DEFAULT '',
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(category, team_no)
+);
+CREATE TABLE IF NOT EXISTS results (
+  id TEXT PRIMARY KEY,
+  category TEXT NOT NULL,
+  a INTEGER,
+  b INTEGER,
+  sa TEXT,
+  sb TEXT,
+  winner INTEGER,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
+CREATE TABLE IF NOT EXISTS categories (
+  key TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  schema TEXT NOT NULL,
+  team_count INTEGER NOT NULL DEFAULT 0,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+`);
+
+// ---- Migration: buang CHECK(category IN ('junior','senior)) agar kategori custom diperbolehkan ----
+(function migrateTeamsConstraint() {
+  const row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='teams'").get();
+  if (!row || !row.sql) return;
+  if (!/CHECK\s*\(\s*category/i.test(row.sql)) return; // sudah bebas
+  try {
+    const tx = db.transaction(() => {
+      db.exec(`
+        CREATE TABLE teams_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          category TEXT NOT NULL,
+          team_no INTEGER NOT NULL,
+          name TEXT DEFAULT '',
+          p1 TEXT DEFAULT '',
+          p2 TEXT DEFAULT '',
+          group_name TEXT DEFAULT '',
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(category, team_no)
+        );
+        INSERT INTO teams_new SELECT * FROM teams;
+        DROP TABLE teams;
+        ALTER TABLE teams_new RENAME TO teams;
+      `);
+    });
+    tx();
+  } catch (e) {
+    console.error('Gagal migrasi teams constraint:', e.message);
+  }
+})();
+
+// ---- Seed default categories ----
+const seed = db.prepare(`
+  INSERT OR IGNORE INTO categories (key, label, schema, team_count, sort_order)
+  VALUES (?, ?, ?, ?, ?)
+`);
+seed.run('junior', 'JUNIOR', 'junior44', 44, 1);
+seed.run('senior', 'SENIOR', 'knockout', 16, 2);
+
+module.exports = db;
