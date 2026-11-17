@@ -26,7 +26,8 @@ exports.createCategory = (req, res) => {
     if (!/^[a-z0-9_]+$/.test(key)) return res.status(400).json({ error: 'key harus huruf kecil, angka, atau underscore.' });
     if (!['junior44', 'knockout'].includes(schema)) return res.status(400).json({ error: 'schema harus junior44 atau knockout.' });
     const isEmpty = empty === true || empty === 'true';
-    const cnt = isEmpty ? 0 : (Number(team_count) || (schema === 'junior44' ? 44 : 16));
+    const parsedCount = Number(team_count);
+    const cnt = isEmpty ? 0 : (Number.isFinite(parsedCount) && parsedCount > 0 ? parsedCount : (schema === 'junior44' ? 44 : 16));
     db.prepare('INSERT INTO categories (key,label,schema,team_count,sort_order) VALUES (?,?,?,?,?)').run(key, label, schema, cnt, Number(sort_order) || 0);
     if (!isEmpty) seedTeams(key, cnt, label.toUpperCase());
     res.json({ ok: true, key });
@@ -45,8 +46,8 @@ exports.updateCategory = (req, res) => {
     if (schema && !['junior44', 'knockout'].includes(schema)) return res.status(400).json({ error: 'schema harus junior44 atau knockout.' });
     const newLabel = label !== undefined ? label : cat.label;
     const newSchema = schema !== undefined ? schema : cat.schema;
-    const newCount = team_count !== undefined ? Number(team_count) : cat.team_count;
-    const newOrder = sort_order !== undefined ? Number(sort_order) : cat.sort_order;
+    const newCount = team_count !== undefined ? (Number.isFinite(Number(team_count)) ? Number(team_count) : cat.team_count) : cat.team_count;
+    const newOrder = sort_order !== undefined ? (Number.isFinite(Number(sort_order)) ? Number(sort_order) : cat.sort_order) : cat.sort_order;
     db.prepare('UPDATE categories SET label=?, schema=?, team_count=?, sort_order=? WHERE key=?').run(newLabel, newSchema, newCount, newOrder, key);
     res.json({ ok: true });
   } catch (err) {

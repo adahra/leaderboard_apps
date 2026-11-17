@@ -2,84 +2,107 @@
  * API Service untuk Leaderboard Apps
  */
 const API = {
+  token: localStorage.getItem('leaderboard_token') || '',
+
+  setToken(token) {
+    this.token = token || '';
+    if (this.token) localStorage.setItem('leaderboard_token', this.token);
+    else localStorage.removeItem('leaderboard_token');
+  },
+
+  authHeaders() {
+    return this.token ? { Authorization: `Bearer ${this.token}` } : {};
+  },
+
+  async request(path, options = {}) {
+    const headers = { ...(options.headers || {}), ...this.authHeaders() };
+    const res = await fetch(path, { ...options, headers });
+    if (!res.ok) {
+      let msg = `HTTP ${res.status}`;
+      try { const j = await res.json(); if (j && j.error) msg = j.error; } catch (e) {}
+      throw new Error(msg);
+    }
+    const ct = res.headers.get('content-type') || '';
+    if (ct.includes('application/json')) return res.json();
+    return res.text();
+  },
+
   async getTeams(category = 'junior') {
-    const res = await fetch(`/api/teams?category=${encodeURIComponent(category)}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
+    return this.request(`/api/teams?category=${encodeURIComponent(category)}`);
   },
 
   async saveTeams(category, teams) {
-    const res = await fetch(`/api/teams?category=${encodeURIComponent(category)}`, {
+    return this.request(`/api/teams?category=${encodeURIComponent(category)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ teams })
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
   },
 
   async getResults(category = 'junior') {
-    const res = await fetch(`/api/results?category=${encodeURIComponent(category)}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
+    return this.request(`/api/results?category=${encodeURIComponent(category)}`);
   },
 
   async saveResults(category, results) {
-    const res = await fetch(`/api/results?category=${encodeURIComponent(category)}`, {
+    return this.request(`/api/results?category=${encodeURIComponent(category)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ results })
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
   },
 
   async getSettings() {
-    const res = await fetch('/api/settings');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
+    return this.request('/api/settings');
   },
 
   async saveSettings(settings) {
-    const res = await fetch('/api/settings', {
+    return this.request('/api/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(settings)
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
   },
 
-  // ---- Categories ----
   async getCategories() {
-    const res = await fetch('/api/categories');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
+    return this.request('/api/categories');
   },
 
   async createCategory(cat) {
-    const res = await fetch('/api/categories', {
+    return this.request('/api/categories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(cat)
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
   },
 
   async updateCategory(key, cat) {
-    const res = await fetch(`/api/categories/${encodeURIComponent(key)}`, {
+    return this.request(`/api/categories/${encodeURIComponent(key)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(cat)
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
   },
 
   async deleteCategory(key) {
-    const res = await fetch(`/api/categories/${encodeURIComponent(key)}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
+    return this.request(`/api/categories/${encodeURIComponent(key)}`, { method: 'DELETE' });
+  },
+
+  async login(username, password) {
+    const data = await this.request('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    this.setToken(data.token);
+    return data;
+  },
+
+  async logout() {
+    try { await this.request('/api/auth/logout', { method: 'POST' }); } catch (e) {}
+    this.setToken('');
+  },
+
+  async me() {
+    return this.request('/api/auth/me');
   }
 };

@@ -1,6 +1,7 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const DATA_DIR = path.resolve(__dirname, '../../data');
 if (!fs.existsSync(DATA_DIR)) {
@@ -46,6 +47,21 @@ CREATE TABLE IF NOT EXISTS categories (
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  salt TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'user',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS sessions (
+  token TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users (id)
+);
 `);
 
 // ---- Migration: buang CHECK(category IN ('junior','senior)) agar kategori custom diperbolehkan ----
@@ -85,5 +101,16 @@ const seed = db.prepare(`
 `);
 seed.run('junior', 'JUNIOR', 'junior44', 44, 1);
 seed.run('senior', 'SENIOR', 'knockout', 16, 2);
+
+// ---- Seed default users ----
+function seedUser(username, password, role) {
+  const exists = db.prepare('SELECT id FROM users WHERE username=?').get(username);
+  if (exists) return;
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  db.prepare('INSERT INTO users (username, password_hash, salt, role) VALUES (?,?,?,?)').run(username, hash, salt, role);
+}
+seedUser('admin', 'admin', 'admin');
+seedUser('user', 'user', 'user');
 
 module.exports = db;

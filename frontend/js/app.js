@@ -12,6 +12,18 @@ function buildTeams(){ for(const key of Object.keys(CATEGORIES)) CATEGORIES[key]
 buildTeams();
 const state={category:"junior", results:{}, teams:null, categories:null};
 let currentCategory="junior";
+let AUTH_USER=null;
+function isAdmin(){return !!(AUTH_USER && AUTH_USER.role === 'admin');}
+function applyAuthUI(){
+  const isAd=isAdmin();
+  document.body.classList.toggle('is-admin', isAd);
+  const userEl=document.getElementById('authUser');
+  if(userEl) userEl.textContent = AUTH_USER ? `${AUTH_USER.username} (${AUTH_USER.role})` : 'Guest';
+  const loginBtn=document.getElementById('loginBtn');
+  const logoutBtn=document.getElementById('logoutBtn');
+  if(loginBtn) loginBtn.style.display = AUTH_USER ? 'none' : '';
+  if(logoutBtn) logoutBtn.style.display = AUTH_USER ? '' : 'none';
+}
 let saveTimer=null;
 // Schema helpers
 function schemaFor(key){ return (CATEGORIES[key]||{}).schema || "knockout"; }
@@ -64,7 +76,7 @@ function setCategory(cat){currentCategory=cat;saveState();renderAll()}
 function categoryButtons(target){
   const el=document.getElementById(target);if(!el)return;
   const keys=Object.keys(CATEGORIES).sort((a,b)=>(CATEGORIES[a].sort_order||0)-(CATEGORIES[b].sort_order)||0);
-  el.innerHTML=keys.map(cat=>`<button class="category-btn ${currentCategory===cat?"active":""}" onclick="setCategory('${cat}')"><strong>🏆 ${CATEGORIES[cat].label}</strong><span>${CATEGORIES[cat].count} slot</span></button>`).join("");
+  el.innerHTML=keys.map(cat=>`<button type="button" class="nav-link ${currentCategory===cat?"active":""}" onclick="setCategory('${cat}')">🏆 ${esc(CATEGORIES[cat].label)} <span class="badge text-bg-secondary ms-1">${CATEGORIES[cat].count} slot</span></button>`).join("");
 }
 function label(r){
   const key=currentCategory;
@@ -92,7 +104,7 @@ function getRec(id){const recs=state.results && state.results[currentCategory];r
 function makeMatch(id,a,b,r){
   const rec=getRec(id);
   const aa=rec.a!==undefined?rec.a:a,bb=rec.b!==undefined?rec.b:b;
-  const winner=rec.winner!==undefined?rec.winner:null;
+  const winner = rec.winner !== undefined ? rec.winner : (aa && !bb ? aa : (!aa && bb ? bb : null));
   return {id,a:aa,b:bb,sa:rec.sa??"",sb:rec.sb??"",winner,round:r};
 }
 function advanceWinner(m){
@@ -211,6 +223,7 @@ function saveResult(id,sa,sb){
   if(sa===""||sb===""){alert("Masukkan kedua skor terlebih dahulu.");return}
   sa=Number(sa);sb=Number(sb);
   if(!Number.isFinite(sa)||!Number.isFinite(sb)||sa<0||sb<0){alert("Skor tidak valid.");return}
+  if(!state.results[currentCategory]) state.results[currentCategory]={};
   if(sa===sb){
     alert("Skor seri. Gunakan tombol sudden death +1 setelah hasil disimpan.");
     state.results[currentCategory][id]={a:m.a,b:m.b,sa,sb,winner:null};
@@ -223,6 +236,7 @@ function saveResult(id,sa,sb){
 }
 function addPoint(id,side){
   const m=getMatches()[id],rec=getRec(id);if(!m||!m.a||!m.b)return;
+  if(!state.results[currentCategory]) state.results[currentCategory]={};
   let sa=Number(rec.sa||0),sb=Number(rec.sb||0);side==="a"?sa++:sb++;
   const winner=sa>sb?m.a:sb>sa?m.b:null;
   state.results[currentCategory][id]={a:m.a,b:m.b,sa,sb,winner};saveState();renderAll();
@@ -287,10 +301,10 @@ function renderBracket(){
   document.getElementById("bracketSubtitle").textContent=isJunior44(key)
     ?`${n} peserta → ${Math.floor(n/2)} pertandingan → leaderboard ${n} tim berdasarkan poin → TOP 16 → 16 Besar → 8 Besar → Semifinal → Juara 1`
     :`${n} tim • ${Math.ceil(n/2)} match awal • Knockout menuju Juara 1`;
-  const total=n,done=Object.values(state.results[key]).filter(x=>x&&x.winner).length;
+  const total=n,done=Object.values((state.results && state.results[key]) || {}).filter(x=>x&&x.winner).length;
   document.getElementById("stats").innerHTML=isJunior44(key)
-    ?`<div class="stat"><b>${n}</b><small>Total Peserta</small></div><div class="stat"><b>${Math.floor(n/2)}</b><small>Pertandingan Awal</small></div><div class="stat"><b>16</b><small>Top 16 Berdasarkan Poin</small></div><div class="stat"><b>${done}</b><small>Pertandingan Selesai</small></div>`
-    :`<div class="stat"><b>${total}</b><small>Total Tim</small></div><div class="stat"><b>${done}</b><small>Pertandingan Selesai</small></div><div class="stat"><b>${total-1}</b><small>Kemenangan Menuju Juara</small></div><div class="stat"><b>${Math.ceil(n/2)}</b><small>Match Awal</small></div>`;
+    ?`<div class="col-6 col-lg-3"><div class="small-box text-bg-primary"><div class="inner"><h3>${n}</h3><p>Total Peserta</p></div><i class="small-box-icon bi bi-people-fill"></i></div></div><div class="col-6 col-lg-3"><div class="small-box text-bg-info"><div class="inner"><h3>${Math.floor(n/2)}</h3><p>Pertandingan Awal</p></div><i class="small-box-icon bi bi-diagram-3"></i></div></div><div class="col-6 col-lg-3"><div class="small-box text-bg-success"><div class="inner"><h3>16</h3><p>Top 16 Berdasarkan Poin</p></div><i class="small-box-icon bi bi-trophy-fill"></i></div></div><div class="col-6 col-lg-3"><div class="small-box text-bg-warning"><div class="inner"><h3>${done}</h3><p>Pertandingan Selesai</p></div><i class="small-box-icon bi bi-check2-circle"></i></div></div>`
+    :`<div class="col-6 col-lg-3"><div class="small-box text-bg-primary"><div class="inner"><h3>${total}</h3><p>Total Tim</p></div><i class="small-box-icon bi bi-people-fill"></i></div></div><div class="col-6 col-lg-3"><div class="small-box text-bg-success"><div class="inner"><h3>${done}</h3><p>Pertandingan Selesai</p></div><i class="small-box-icon bi bi-check2-circle"></i></div></div><div class="col-6 col-lg-3"><div class="small-box text-bg-info"><div class="inner"><h3>${total-1}</h3><p>Kemenangan Menuju Juara</p></div><i class="small-box-icon bi bi-trophy-fill"></i></div></div><div class="col-6 col-lg-3"><div class="small-box text-bg-warning"><div class="inner"><h3>${Math.ceil(n/2)}</h3><p>Match Awal</p></div><i class="small-box-icon bi bi-diagram-3"></i></div></div>`;
 }
 function drawOneConnector(svg,flow,fromEl,toEl,matches,fr,ns,activeOverride){
   const ar=fromEl.getBoundingClientRect(),br=toEl.getBoundingClientRect(),x1=ar.right-fr.left,x2=br.left-fr.left,y1=ar.top+ar.height/2-fr.top,y2=br.top+br.height/2-fr.top,mid=x1+(x2-x1)*.5,active=activeOverride===undefined?false:activeOverride;
@@ -348,7 +362,7 @@ function drawBracketConnectors(){
 window.addEventListener("resize",()=>{clearTimeout(window.__bracketResize);window.__bracketResize=setTimeout(drawBracketConnectors,80)});
 function inputMatch(id){
   const m=getMatches()[id],rec=getRec(id),has=playable(m),bye=(m.a&&!m.b)||(m.b&&!m.a),submitted=has&&rec.sa!==undefined&&rec.sa!==""&&rec.sb!=="",tie=submitted&&Number(rec.sa)===Number(rec.sb);
-  return `<div class="match-card ${m.winner?"decided":""}"><div class="match-head"><span>${label(m.round)}</span><span>${id.toUpperCase()}</span></div><div class="score-row"><div class="team-input ${m.winner===m.a?"win":""}"><b>${tname(m.a)}</b><div class="mini">${m.a?members(m.a):"Menunggu tim"}</div><input id="${id}a" type="number" min="0" value="${rec.sa??""}" ${has?"":"disabled"}></div><div class="vs">VS</div><div class="team-input ${m.winner===m.b?"win":""}"><b>${tname(m.b)}</b><div class="mini">${m.b?members(m.b):"Menunggu tim"}</div><input id="${id}b" type="number" min="0" value="${rec.sb??""}" ${has?"":"disabled"}></div></div><div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${has?`<button class="btn primary" onclick="saveResult('${id}',document.getElementById('${id}a').value,document.getElementById('${id}b').value)">Simpan Hasil</button>`:bye?'<span class="badge b-lolos">AUTO BYE</span>':'<span style="color:var(--muted);font-size:12px">Menunggu tim / pemenang babak sebelumnya</span>'}${m.winner?`<span class="badge b-lolos">🏆 ${tname(m.winner)}</span>`:""}</div>${tie?`<div class="note" style="margin:10px 0 0;background:#2b2312;border-color:#6e5a2b;color:#ffd876">⚡ Seri. Sudden death: <button class="btn" onclick="addPoint('${id}','a')">+1 ${tname(m.a)}</button> <button class="btn" onclick="addPoint('${id}','b')">+1 ${tname(m.b)}</button></div>`:""}</div>`;
+  return `<div class="card mb-3 ${m.winner?"border-success":""}"><div class="card-header d-flex justify-content-between align-items-center"><span class="text-info fw-bold">${label(m.round)}</span><span class="text-secondary small">${id.toUpperCase()}</span></div><div class="card-body"><div class="row g-2 align-items-center"><div class="col"><div class="border rounded p-2 h-100 ${m.winner===m.a?"border-success bg-success-subtle":""}"><b>${tname(m.a)}</b><div class="small text-secondary">${m.a?members(m.a):"Menunggu tim"}</div><input id="${id}a" type="number" min="0" class="form-control text-center fw-bold mt-2" value="${rec.sa??""}" ${has&&!isAdmin()?"disabled":has?"":"disabled"}></div></div><div class="col-auto fw-bold text-secondary">VS</div><div class="col"><div class="border rounded p-2 h-100 ${m.winner===m.b?"border-success bg-success-subtle":""}"><b>${tname(m.b)}</b><div class="small text-secondary">${m.b?members(m.b):"Menunggu tim"}</div><input id="${id}b" type="number" min="0" class="form-control text-center fw-bold mt-2" value="${rec.sb??""}" ${has&&!isAdmin()?"disabled":has?"":"disabled"}></div></div></div><div class="mt-3 d-flex gap-2 flex-wrap align-items-center">${has&&isAdmin()?`<button class="btn btn-primary admin-only" onclick="saveResult('${id}',document.getElementById('${id}a').value,document.getElementById('${id}b').value)">Simpan Hasil</button>`:has?'<span class="text-secondary small">Hanya admin yang dapat menginput hasil</span>':bye?'<span class="badge text-bg-success">AUTO BYE</span>':'<span class="text-secondary small">Menunggu tim / pemenang babak sebelumnya</span>'}${m.winner?`<span class="badge text-bg-success">🏆 ${tname(m.winner)}</span>`:""}</div>${tie?`<div class="alert alert-warning mb-0 mt-3 d-flex gap-2 align-items-center flex-wrap">⚡ Seri. Sudden death: <button class="btn btn-sm btn-secondary" onclick="addPoint('${id}','a')">+1 ${tname(m.a)}</button> <button class="btn btn-sm btn-secondary" onclick="addPoint('${id}','b')">+1 ${tname(m.b)}</button></div>`:""}</div></div>`;
 }
 function renderInput(){
   const ids=Object.keys(getMatches());
@@ -380,16 +394,16 @@ function renderLeaderboard(){
     const stats=juniorSelectionStats(),arr=juniorLeaderboardIds(),complete=juniorOpeningComplete();
     document.getElementById("leaderEl").innerHTML=arr.map((n,i)=>{
       const st=statusOf(n),qualified=complete&&i<16;
-      const cls=qualified?"b-lolos":complete?"b-gagal":"b-menunggu";
+      const cls=qualified?"text-bg-success":complete?"text-bg-danger":"text-bg-secondary";
       const t=team(n),d=stats[n];
       const status=complete?(qualified?"LOLOS 16 BESAR":"TIDAK LOLOS"):"MASIH BERPELUANG";
       return `<tr><td><b style="color:${qualified?"var(--accent)":"var(--muted)"}">${i+1}</b></td><td><button class="team-click leader-team-btn" type="button" title="Klik untuk melihat data lengkap" onclick="showTeamDetail(${n},${i+1})">${tname(n)}</button><br><span style="color:var(--muted2);font-size:10px">${esc(t.group)}</span></td><td>${members(n)}</td><td><b>${d.points}</b><div style="font-size:9px;color:var(--muted2)">Selisih ${d.diff>=0?"+":""}${d.diff}</div></td><td><span class="badge ${cls}">${status}</span></td></tr>`;
     }).join("");
     return;
   }
-  Object.values(state.results[key]).forEach(m=>{if(m.a&&m.sa!=="")totals[m.a]+=Number(m.sa||0);if(m.b&&m.sb!=="")totals[m.b]+=Number(m.sb||0)});
+  Object.values((state.results && state.results[key]) || {}).forEach(m=>{if(m.a&&m.sa!=="")totals[m.a]+=Number(m.sa||0);if(m.b&&m.sb!=="")totals[m.b]+=Number(m.sb||0)});
   const arr=Object.keys(totals).map(Number).sort((a,b)=>totals[b]-totals[a]||a-b);
-  document.getElementById("leaderEl").innerHTML=arr.map((n,i)=>{const st=statusOf(n),cls={MENUNGGU:"b-menunggu",LOLOS:"b-lolos",GAGAL:"b-gagal",JUARA1:"b-juara1",JUARA2:"b-juara2",JUARA3:"b-juara3"}[st],t=team(n);return `<tr><td><b style="color:var(--accent)">${i+1}</b></td><td><button class="team-click leader-team-btn" type="button" title="Klik untuk melihat data lengkap" onclick="showTeamDetail(${n},${i+1})">${tname(n)}</button><br><span style="color:var(--muted2);font-size:10px">${esc(t.group)}</span></td><td>${members(n)}</td><td><b>${totals[n]}</b></td><td><span class="badge ${cls}">${st==="JUARA1"?"JUARA 1":st==="JUARA2"?"JUARA 2":st==="JUARA3"?"JUARA 3":st}</span></td></tr>`}).join("");
+  document.getElementById("leaderEl").innerHTML=arr.map((n,i)=>{const st=statusOf(n),cls={MENUNGGU:"text-bg-secondary",LOLOS:"text-bg-success",GAGAL:"text-bg-danger",JUARA1:"text-bg-warning",JUARA2:"text-bg-light",JUARA3:"text-bg-info"}[st],t=team(n);return `<tr><td><b style="color:var(--accent)">${i+1}</b></td><td><button class="team-click leader-team-btn" type="button" title="Klik untuk melihat data lengkap" onclick="showTeamDetail(${n},${i+1})">${tname(n)}</button><br><span style="color:var(--muted2);font-size:10px">${esc(t.group)}</span></td><td>${members(n)}</td><td><b>${totals[n]}</b></td><td><span class="badge ${cls}">${st==="JUARA1"?"JUARA 1":st==="JUARA2"?"JUARA 2":st==="JUARA3"?"JUARA 3":st}</span></td></tr>`}).join("");
 }
 function renderChampions(){
   const ms=getMatches();
@@ -404,9 +418,10 @@ function renderChampions(){
 function renderTeams(){
   const el=document.getElementById("teamEditor"),arr=CATEGORIES[currentCategory].teams;
   const cnt=document.getElementById("teamCountLabel"); if(cnt) cnt.textContent=arr.length;
-  const inp=document.getElementById("teamCountInput"); if(inp) inp.value=arr.length;
+  const inp=document.getElementById("teamCountInput"); if(inp){ inp.value=arr.length; inp.disabled=!isAdmin(); }
   document.getElementById("teamNote").innerHTML=`<b>${catLabel(currentCategory)}:</b> ${arr.length} tim. Data dapat ditambah/dikurangi dan diedit secara dinamis. Hasil pertandingan akan direset jika jumlah tim atau susunan berubah.`;
-  el.innerHTML=arr.map((t,i)=>`<div class="team-edit-card"><div class="team-edit-head"><span class="team-number">TEAM ${i+1}</span><span class="team-seed">${t.name.includes("BELUM")?"TAMBAHAN":"KUSTOM/DEFAULT"}</span><button class="btn danger btn-small" onclick="deleteSingleTeam(${i})" style="float:right;margin-top:2px">🗑 Hapus</button></div><div class="form-grid"><div><label>Nama Tim / Sekolah</label><input id="tn${i+1}" value="${esc(t.name)}"></div><div><label>Kategori</label><input value="${catLabel(currentCategory)}" disabled></div><div><label>Peserta 1</label><input id="tp1${i+1}" value="${esc(t.p1)}"></div><div><label>Peserta 2</label><input id="tp2${i+1}" value="${esc(t.p2)}"></div></div><div class="team-preview">${esc(t.name)}<br>${esc(t.p1)} &amp; ${esc(t.p2)}</div></div>`).join("");
+  const ro = isAdmin() ? '' : 'disabled';
+el.innerHTML=arr.map((t,i)=>`<div class="col-12 col-md-6 col-xl-4"><div class="card h-100"><div class="card-header d-flex justify-content-between align-items-center gap-2"><span class="text-info fw-bold">TEAM ${i+1}</span><div class="d-flex align-items-center gap-2"><span class="text-secondary small">${t.name.includes("BELUM")?"TAMBAHAN":"KUSTOM/DEFAULT"}</span><button class="btn btn-danger btn-sm admin-only" onclick="deleteSingleTeam(${i})" title="Hapus tim">🗑</button></div></div><div class="card-body"><div class="row g-2"><div class="col-6"><label class="form-label" for="tn${i+1}">Nama Tim / Sekolah</label><input id="tn${i+1}" class="form-control" value="${esc(t.name)}" ${ro}></div><div class="col-6"><label class="form-label">Kategori</label><input class="form-control" value="${esc(catLabel(currentCategory))}" disabled></div><div class="col-6"><label class="form-label" for="tp1${i+1}">Peserta 1</label><input id="tp1${i+1}" class="form-control" value="${esc(t.p1)}" ${ro}></div><div class="col-6"><label class="form-label" for="tp2${i+1}">Peserta 2</label><input id="tp2${i+1}" class="form-control" value="${esc(t.p2)}" ${ro}></div></div><div class="mt-2 small text-secondary">${esc(t.name)}<br>${esc(t.p1)} &amp; ${esc(t.p2)}</div></div></div></div>`).join("");
 }
 function schoolKey(name){
   return String(name||"")
@@ -573,17 +588,15 @@ function importTeamsJSON(){
   input.click();
 }
 function resetResults(){if(!confirm(`Hapus SEMUA hasil pertandingan kategori ${catLabel(currentCategory)}?\n\nSemua skor dan pemenang akan dikosongkan.`))return;state.results[currentCategory]={};saveState();renderAll()}
-function toggleNav(){const h=document.querySelector(".site-header");h.classList.toggle("nav-open");document.getElementById("menuToggle").textContent=h.classList.contains("nav-open")?"✕":"☰"}
-function closeNav(){document.querySelector(".site-header").classList.remove("nav-open");document.getElementById("menuToggle").textContent="☰"}
-function view(id,btn){document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));if(btn)btn.classList.add("active");closeNav();renderAll()}
+function view(id,btn){document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".sidebar-menu .nav-link").forEach(b=>b.classList.remove("active"));if(btn)btn.classList.add("active");renderAll()}
 function fullscreen(){if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.()}
 function youtubeId(url){if(!url)return"";const m=String(url).match(/(?:v=|youtu\.be\/|youtube\.com\/live\/|youtube\.com\/embed\/)([A-Za-z0-9_-]{11})/);return m?m[1]:""}
 function renderLive(){
- const cfg=JSON.parse(localStorage.getItem("ugotLive2026")||"null")||{name:"UGOT COMPETITION 2026",match:"",url:""};document.getElementById("liveName").value=cfg.name;document.getElementById("liveMatch").value=cfg.match;document.getElementById("liveUrl").value=cfg.url;
+ let cfg=null; try { cfg=JSON.parse(localStorage.getItem("ugotLive2026")||"null"); } catch(e){ cfg=null; } cfg = cfg || {name:"UGOT COMPETITION 2026",match:"",url:""};document.getElementById("liveName").value=cfg.name;document.getElementById("liveMatch").value=cfg.match;document.getElementById("liveUrl").value=cfg.url;
  const id=youtubeId(cfg.url),p=document.getElementById("youtubePlayer"),st=document.getElementById("liveStatus");
  if(!id){p.innerHTML='<div class="live-safe"><div><div style="font-size:45px">📺</div><h3>Siap Menampilkan Live</h3><p>Masukkan URL YouTube Live di panel kanan.</p></div></div>';st.textContent="Status: belum ada link.";return}
- if(location.protocol==="file:"){p.innerHTML='<div class="live-safe"><div><div style="font-size:45px">🌐</div><h3>Live siap dibuka</h3><p>File HTML lokal dapat membatasi embed YouTube.</p><button class="btn primary" onclick="openLive()">▶️ Buka YouTube</button></div></div>';st.textContent="Status: mode file lokal.";return}
- const src=`https://www.youtube-nocookie.com/embed/${id}?autoplay=0&rel=0&modestbranding=1&playsinline=1`;p.innerHTML=`<iframe src="${src}" title="UGOT Competition Live Stream" allow="autoplay; encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>`;st.innerHTML='Status: <b style="color:#6fe3b8">LIVE PLAYER AKTIF</b>';
+ if(location.protocol==="file:"){p.innerHTML='<div class="live-safe"><div><div style="font-size:45px">🌐</div><h3>Live siap dibuka</h3><p>File HTML lokal dapat membatasi embed YouTube.</p><button class="btn btn-primary" onclick="openLive()">▶️ Buka YouTube</button></div></div>';st.textContent="Status: mode file lokal.";return}
+ const src=`https://www.youtube-nocookie.com/embed/${id}?autoplay=0&rel=0&modestbranding=1&playsinline=1`;p.innerHTML=`<iframe src="${src}" title="UGOT Competition Live Stream" allow="autoplay; encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>`;st.innerHTML='Status: <b class="text-success">LIVE PLAYER AKTIF</b>';
 }
 function applyLive(){const cfg={name:document.getElementById("liveName").value.trim()||"UGOT COMPETITION 2026",match:document.getElementById("liveMatch").value.trim(),url:document.getElementById("liveUrl").value.trim()};if(cfg.url&&!youtubeId(cfg.url)){alert("Link YouTube tidak dikenali.");return}localStorage.setItem("ugotLive2026",JSON.stringify(cfg));renderLive()}
 function openLive(){const u=document.getElementById("liveUrl").value.trim();if(u)window.open(u,"_blank","noopener,noreferrer");else alert("Masukkan link YouTube terlebih dahulu.")}
@@ -599,17 +612,40 @@ function showTeamDetail(n,rank=null){
   document.getElementById("teamDetailSchool").textContent=t.name||"—";
   document.getElementById("teamDetailP1").textContent=t.p1||"—";
   document.getElementById("teamDetailP2").textContent=t.p2||"—";
-  document.getElementById("teamDetailBackdrop").classList.add("show");
-  document.body.style.overflow="hidden";
+  showModal("teamDetailBackdrop");
 }
-function closeTeamDetail(event){
-  if(event && event.target!==event.currentTarget)return;
-  document.getElementById("teamDetailBackdrop").classList.remove("show");
-  document.body.style.overflow="";
-}
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeTeamDetail();closeCategoryModal();}});
+function closeTeamDetail(){ hideModal("teamDetailBackdrop"); }
+function showModal(id){ const el=document.getElementById(id); if(el) bootstrap.Modal.getOrCreateInstance(el).show(); }
+function hideModal(id){ const el=document.getElementById(id); if(el){ const m=bootstrap.Modal.getInstance(el); if(m) m.hide(); } }
 
-function renderAll(){categoryButtons("categoryBar");categoryButtons("inputCategoryBar");categoryButtons("leaderCategoryBar");categoryButtons("champCategoryBar");categoryButtons("teamCategoryBar");categoryButtons("pengaturanCategoryBar");renderBracket();renderInput();renderLeaderboard();renderChampions();renderTeams();renderPengaturan();renderLive()}
+function renderAll(){categoryButtons("categoryBar");categoryButtons("inputCategoryBar");categoryButtons("leaderCategoryBar");categoryButtons("champCategoryBar");categoryButtons("teamCategoryBar");categoryButtons("pengaturanCategoryBar");renderBracket();renderInput();renderLeaderboard();renderChampions();renderTeams();renderPengaturan();renderLive();applyAuthUI()}
+
+function openLoginModal(){
+  const st=document.getElementById('loginStatus'); if(st) st.textContent='';
+  showModal('loginModalBackdrop');
+}
+function closeLoginModal(){ hideModal('loginModalBackdrop'); }
+async function submitLogin(){
+  const username=document.getElementById('loginUsername').value.trim();
+  const password=document.getElementById('loginPassword').value;
+  const st=document.getElementById('loginStatus');
+  try{
+    const data=await API.login(username,password);
+    AUTH_USER=data.user;
+    applyAuthUI();
+    closeLoginModal();
+    renderAll();
+    alert(`Login berhasil: ${data.user.username} (${data.user.role})`);
+  }catch(e){
+    if(st) st.textContent='Gagal login: '+e.message;
+  }
+}
+async function doLogout(){
+  await API.logout();
+  AUTH_USER=null;
+  applyAuthUI();
+  renderAll();
+}
 
 async function init(){
   try{
@@ -643,11 +679,16 @@ async function init(){
     });
     if(set && set.category && CATEGORIES[set.category]) currentCategory = set.category;
     else currentCategory = keys[0] || "junior";
+    try { const me = await API.me(); AUTH_USER = me.user; } catch (e) { AUTH_USER = null; API.setToken(''); }
+    applyAuthUI();
   }catch(e){
     console.error("Gagal inisialisasi aplikasi:", e);
     if(!CATEGORIES.junior) CATEGORIES.junior = {key:"junior",label:"Junior",schema:"junior44",count:44,sort_order:1,teams:generateDefaultTeams(44,"Junior")};
     if(!CATEGORIES.senior) CATEGORIES.senior = {key:"senior",label:"Senior",schema:"knockout",count:16,sort_order:2,teams:generateDefaultTeams(16,"Senior")};
     if(!currentCategory) currentCategory = "junior";
+    AUTH_USER=null;
+    API.setToken('');
+    applyAuthUI();
   }
   renderAll();
 }
@@ -699,13 +740,12 @@ function openCategoryModal(key=null){
   if(emptyBox){
     emptyBox.checked=false;
     emptyBox.disabled=isEdit;
-    emptyBox.parentElement.parentElement.style.display=isEdit?"none":"flex";
+    emptyBox.parentElement.parentElement.style.display=isEdit?"none":"";
   }
   document.getElementById("catOrderInput").value=cat?((CATEGORIES[key]||{}).sort_order||0):"";
   document.getElementById("categoryDeleteBtn").style.display=isEdit?"":"none";
   window.__editingCategory=key||null;
-  document.getElementById("categoryModalBackdrop").classList.add("show");
-  document.body.style.overflow="hidden";
+  showModal("categoryModalBackdrop");
 }
 async function saveCategory(){
   const key=window.__editingCategory;
@@ -777,8 +817,8 @@ function renderPengaturan(){
       <td>${c.count}</td>
       <td>${c.sort_order||0}</td>
       <td>
-        <button class="btn" type="button" onclick="openCategoryModal('${k}')">Edit</button>
-        <button class="btn danger" type="button" onclick="deleteCategoryByKey('${k}', '${esc(c.label)}')">Hapus</button>
+        <button class="btn btn-sm btn-secondary" type="button" onclick="openCategoryModal('${k}')">Edit</button>
+        <button class="btn btn-sm btn-danger" type="button" onclick="deleteCategoryByKey('${k}', '${esc(c.label)}')">Hapus</button>
       </td>
     </tr>`;
   }).join("");
@@ -791,8 +831,9 @@ async function deleteCategoryByKey(key, label){
     alert("Kategori dihapus.");
   }catch(e){alert("Gagal menghapus kategori: "+e.message);}
 }
-function closeCategoryModal(event){
-  if(event && event.target!==event.currentTarget)return;
-  document.getElementById("categoryModalBackdrop").classList.remove("show");
-  document.body.style.overflow="";
+async function deleteCurrentCategory(){
+  const key=currentCategory;
+  if(!key || !CATEGORIES[key]) return;
+  await deleteCategoryByKey(key, catLabel(key));
 }
+function closeCategoryModal(){ hideModal("categoryModalBackdrop"); }

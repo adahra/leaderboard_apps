@@ -47,3 +47,4 @@ Base URL: `/api`
 - Tidak ada test suite atau lint script di `package.json`.
 - Database menggunakan WAL mode; inspeksi bisa memakai `backend/tools/inspect_db.js`.
 - Perubahan tim/hasil dilakukan bulk replace per kategori.
+- Multi-user: login via `/api/auth/login`. Default admin `admin/admin`, user biasa `user/user`. Hanya admin yang dapat mengubah data; user/guest hanya melihat.
