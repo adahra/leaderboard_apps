@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS results (
   winner INTEGER,
   scheduled_at TEXT,
   status TEXT,
+  live_url TEXT,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS settings (
@@ -79,6 +80,7 @@ CREATE TABLE IF NOT EXISTS result_history (
   winner INTEGER,
   scheduled_at TEXT,
   status TEXT,
+  live_url TEXT,
   changed_by TEXT,
   changed_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -130,6 +132,9 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log (created_at);
   const cols = db.prepare('PRAGMA table_info(results)').all().map((c) => c.name);
   if (!cols.includes('scheduled_at')) db.exec('ALTER TABLE results ADD COLUMN scheduled_at TEXT');
   if (!cols.includes('status')) db.exec('ALTER TABLE results ADD COLUMN status TEXT');
+  if (!cols.includes('live_url')) db.exec('ALTER TABLE results ADD COLUMN live_url TEXT');
+  const hcols = db.prepare('PRAGMA table_info(result_history)').all().map((c) => c.name);
+  if (!hcols.includes('live_url')) db.exec('ALTER TABLE result_history ADD COLUMN live_url TEXT');
 })();
 
 // ---- Migration: tambah kolom archived pada categories (DB lama) ----

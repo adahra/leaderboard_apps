@@ -9,10 +9,10 @@ function norm(v) {
 exports.getResults = (req, res) => {
   try {
     const cat = req.query.category || 'junior';
-    const rows = db.prepare('SELECT id,a,b,sa,sb,winner,scheduled_at,status FROM results WHERE category=?').all(cat);
+    const rows = db.prepare('SELECT id,a,b,sa,sb,winner,scheduled_at,status,live_url FROM results WHERE category=?').all(cat);
     const out = {};
     rows.forEach(r => {
-      out[r.id] = { a: r.a, b: r.b, sa: r.sa, sb: r.sb, winner: r.winner, scheduled_at: r.scheduled_at, status: r.status };
+      out[r.id] = { a: r.a, b: r.b, sa: r.sa, sb: r.sb, winner: r.winner, scheduled_at: r.scheduled_at, status: r.status, live_url: r.live_url };
     });
     res.json(out);
   } catch (err) {
@@ -27,21 +27,22 @@ exports.updateResults = (req, res) => {
     const changedBy = (req.user && req.user.username) || 'system';
     const tx = db.transaction(() => {
       const prev = {};
-      db.prepare('SELECT id,a,b,sa,sb,winner,scheduled_at,status FROM results WHERE category=?').all(cat)
+      db.prepare('SELECT id,a,b,sa,sb,winner,scheduled_at,status,live_url FROM results WHERE category=?').all(cat)
         .forEach(r => { prev[r.id] = r; });
       db.prepare('DELETE FROM results WHERE category=?').run(cat);
-      const ins = db.prepare('INSERT INTO results (id,category,a,b,sa,sb,winner,scheduled_at,status) VALUES (?,?,?,?,?,?,?,?,?)');
-      const hist = db.prepare('INSERT INTO result_history (category,match_id,a,b,sa,sb,winner,scheduled_at,status,changed_by) VALUES (?,?,?,?,?,?,?,?,?,?)');
+      const ins = db.prepare('INSERT INTO results (id,category,a,b,sa,sb,winner,scheduled_at,status,live_url) VALUES (?,?,?,?,?,?,?,?,?,?)');
+      const hist = db.prepare('INSERT INTO result_history (category,match_id,a,b,sa,sb,winner,scheduled_at,status,live_url,changed_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
       Object.entries(results).forEach(([id, r]) => {
         const a = r.a ?? null, b = r.b ?? null;
         const sa = norm(r.sa), sb = norm(r.sb);
         const winner = r.winner ?? null;
         const scheduled = norm(r.scheduled_at), status = norm(r.status);
-        ins.run(id, cat, a, b, sa, sb, winner, scheduled, status);
+        const live = norm(r.live_url);
+        ins.run(id, cat, a, b, sa, sb, winner, scheduled, status, live);
         const p = prev[id];
         const changed = !p || p.a !== a || p.b !== b || p.sa !== sa || p.sb !== sb ||
-          p.winner !== winner || p.scheduled_at !== scheduled || p.status !== status;
-        if (changed) hist.run(cat, id, a, b, sa, sb, winner, scheduled, status, changedBy);
+          p.winner !== winner || p.scheduled_at !== scheduled || p.status !== status || p.live_url !== live;
+        if (changed) hist.run(cat, id, a, b, sa, sb, winner, scheduled, status, live, changedBy);
       });
     });
     tx();
