@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS teams (
   name TEXT DEFAULT '',
   p1 TEXT DEFAULT '',
   p2 TEXT DEFAULT '',
+  photo_url TEXT DEFAULT '',
   group_name TEXT DEFAULT '',
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(category, team_no)
@@ -106,11 +107,12 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log (created_at);
           name TEXT DEFAULT '',
           p1 TEXT DEFAULT '',
           p2 TEXT DEFAULT '',
+          photo_url TEXT DEFAULT '',
           group_name TEXT DEFAULT '',
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           UNIQUE(category, team_no)
         );
-        INSERT INTO teams_new SELECT * FROM teams;
+        INSERT INTO teams_new (category, team_no, name, p1, p2, photo_url, group_name, updated_at) SELECT category, team_no, name, p1, p2, '', group_name, updated_at FROM teams;
         DROP TABLE teams;
         ALTER TABLE teams_new RENAME TO teams;
       `);
@@ -132,6 +134,11 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log (created_at);
 (function migrateCategoriesArchived() {
   const cols = db.prepare('PRAGMA table_info(categories)').all().map((c) => c.name);
   if (!cols.includes('archived')) db.exec('ALTER TABLE categories ADD COLUMN archived INTEGER NOT NULL DEFAULT 0');
+})();
+// ---- Migration: tambah kolom photo_url pada teams (DB lama) ----
+(function migrateTeamsPhoto() {
+  const cols = db.prepare('PRAGMA table_info(teams)').all().map((c) => c.name);
+  if (!cols.includes('photo_url')) db.exec("ALTER TABLE teams ADD COLUMN photo_url TEXT DEFAULT ''");
 })();
 const seed = db.prepare(`
   INSERT OR IGNORE INTO categories (key, label, schema, team_count, sort_order)

@@ -123,3 +123,12 @@ body:not(.is-admin) .admin-only { display: none !important }
   .round { width: 190px }
   .center-result { width: 210px }
 }
+
+/* ---------- Print ---------- */
+@media print {
+  .app-sidebar, .app-header, .sidebar-menu, .no-print, .nav, .btn, form { display: none !important; }
+  body { background: #fff !important; color: #000 !important }
+  .view { display: block !important }
+  .card { box-shadow: none !important; border: 1px solid #ccc !important }
+  .match, .slot { break-inside: avoid }
+}

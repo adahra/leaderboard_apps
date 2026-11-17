@@ -13,11 +13,11 @@ browser  →  fetch (API.js)  →  Express /api/*  →  controller  →  better-
 ```
 
 - `server.js` (root) → `require('./backend/server')` → Express app di `backend/server.js`.
-- `backend/server.js`: JSON body parser (5mb), `express.static(FRONTEND_DIR)`, mount `/api` router, SPA fallback ke `index.html`, centralized 500 error handler. Exports `app`; `app.listen` hanya saat `require.main === module`.
+- `backend/server.js`: JSON body parser (5mb), `express.static(FRONTEND_DIR)`, mount `/api` router, SPA fallback ke `index.html`, centralized 500 error handler. CORS opt-in lewat env `CORS_ORIGIN` (header `Access-Control-Allow-*` + preflight `OPTIONS` 204). Exports `app`; `app.listen` hanya saat `require.main === module`.
 - `backend/routes/index.js`: mount `/auth`, `/teams`, `/results`, `/settings`, `/categories`, `/health`, `/audit`.
 - Kontroler di `backend/controllers/`: auth, teams, results, settings, categories. Semua impor `db` dari `backend/config/db.js` (singleton `better-sqlite3`).
-- `backend/config/db.js`: buka DB (`data/leaderboard.db`), WAL pragma, schema DDL (`teams`, `results`, `settings`, `categories`, `users`, `sessions`, `result_history`, `audit_log`), migrasi idempoten (buang `CHECK` kategori pada `teams`; `ALTER TABLE results` tambah `scheduled_at`/`status`; `ALTER TABLE categories` tambah `archived`), seed kategori default (`junior`/`senior`) + user default. Helper `db.logAudit(actor, action, target, detail)`.
-- Frontend: `frontend/js/api.js` (fetch wrapper, token di `localStorage` `leaderboard_token`), `frontend/js/app.js` (semua logic UI/rendering, ~859 baris), `frontend/index.html`.
+- `backend/config/db.js`: buka DB (`data/leaderboard.db`), WAL pragma, schema DDL (`teams`, `results`, `settings`, `categories`, `users`, `sessions`, `result_history`, `audit_log`), migrasi idempoten (buang `CHECK` kategori pada `teams`; `ALTER TABLE results` tambah `scheduled_at`/`status`; `ALTER TABLE categories` tambah `archived`; `ALTER TABLE teams` tambah `photo_url`), seed kategori default (`junior`/`senior`) + user default. Helper `db.logAudit(actor, action, target, detail)`.
+- Frontend: `frontend/js/api.js` (fetch wrapper, token di `localStorage` `leaderboard_token`, `me()` untuk sesi), `frontend/js/app.js` (semua logic UI/rendering, ~980 baris), `frontend/index.html`.
 
 Data flow tulis: frontend `PUT` → controller `db.transaction` → `DELETE FROM ... WHERE category=?` lalu bulk re-insert. `updateResults` juga mencatat `result_history` bila nilai berubah (`changed_by` = `req.user.username`); penulisan identik tidak menambah baris. Read: `SELECT ... WHERE category=?`; riwayat skor/jadwal/status lewat `GET /api/results/history?category=<key>&match=<matchId>` (butuh admin).
 
@@ -29,7 +29,7 @@ Data flow tulis: frontend `PUT` → controller `db.transaction` → `DELETE FROM
 | `backend/controllers/` | REST route handlers (auth, teams, results, settings, categories) |
 | `backend/routes/` | Express router mount files per resource |
 | `backend/config/` | `db.js` — DB instance, schema, migration, seed |
-| `backend/tools/` | `inspect_db.js` — manual DB inspeksi (bukan test) |
+| `backend/tools/` | `inspect_db.js` — inspeksi DB manual; `backup_db.js` — backup DB ke `data/backups/` |
 | `frontend/` | Static SPA served by Express |
 | `frontend/js/` | `api.js` fetch wrapper, `app.js` UI logic |
 | `data/` | `leaderboard.db` + WAL/shm (runtime, tidak di-.gitignore) |
@@ -42,6 +42,7 @@ Data flow tulis: frontend `PUT` → controller `db.transaction` → `DELETE FROM
 |---------|------|
 | `npm install` | Instal dependensi |
 | `npm run dev` / `npm start` | `node backend/server.js`, port `PORT` atau `3000` |
+| `npm run backup` | `node backend/tools/backup_db.js` → `data/backups/leaderboard_<timestamp>.db` |
 | `node server.js` | Entry alternatif (root delegasi ke `backend/server.js`) |
 | `node backend/tools/inspect_db.js` | Inspeksi manual DB |
 
@@ -100,10 +101,10 @@ router.put('/', auth.requireAdmin, teamsController.updateTeams);
 | `backend/controllers/resultsController.js` | `getResults`, `updateResults` (bulk replace + tulis `result_history`), `getResultHistory` |
 | `backend/controllers/settingsController.js` | `getSettings`, `updateSettings` |
 | `backend/controllers/categoriesController.js` | CRUD kategori + `syncTeamCount` |
-| `frontend/js/api.js` | Fetch wrapper + token `localStorage` |
+| `frontend/js/api.js` | Fetch wrapper + token `localStorage`, `login`/`me`/`logout` |
 | `frontend/js/app.js` | Semua logic UI/rendering turnamen |
 | `frontend/index.html` | SPA markup (7 view: bagan, input, leaderboard, juara, tim, live, pengaturan; modal: team detail, kategori, riwayat, login) |
-| `package.json` | Skrip `start`/`dev`, dependensi express + better-sqlite3 |
+| `package.json` | Skrip `start`/`dev`/`backup`, dependensi express + better-sqlite3 |
 | `.gitignore` | `node_modules/`, logs, dll; `data/` **tidak** diignore |
 
 ## Runtime/Tooling Preferences
@@ -111,7 +112,7 @@ router.put('/', auth.requireAdmin, teamsController.updateTeams);
 - Runtime: Node.js (v24.22.1 terinstal), CommonJS.
 - Package manager: npm (lockfileVersion 3).
 - Dependensi produksi: `express` ^4.19.2 (terpasang 4.22.3), `better-sqlite3` ^11.3.0 (terpasang 11.10.0, native addon butuh compile saat install).
-- Hanya env var yang digunakan: `PORT` (default `3000`).
+- Env var: `PORT` (default `3000`), `CORS_ORIGIN` (opsional; aktifkan CORS bila di-set).
 - Tidak ada `.env`, `tsconfig`, eslint, prettier, vite, docker, atau nodemon.
 - DB: SQLite WAL mode, query sinkron.
 

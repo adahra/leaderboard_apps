@@ -27,6 +27,12 @@ Daftar kandidat fitur baru berdasarkan audit kode `leaderboard_apps`. Semua bers
 - Tabel `audit_log` (+ index `idx_audit_log_created`) + helper `db.logAudit`; insert di mutasi kategori/tim/hasil/settings/auth; endpoint `GET /api/audit` (admin).
 - Tie-breaking junior44: setelah poin, selisih gol, menang, tambah head-to-head (pemenang langsung menang tie-break).
 - Knockout jumlah ganjil: babak pertama otomatis bye untuk tim terakhir; badge AUTO BYE + winner auto.
+**Batch 4 — selesai:**
+- CORS opt-in: middleware di `backend/server.js` aktif hanya bila `CORS_ORIGIN` di-set; header `Access-Control-Allow-*` + preflight `OPTIONS` 204.
+- Foto/logo tim: kolom `teams.photo_url` + migrasi idempoten; `getTeams`/`updateTeams` bawa field `photo`; frontend input URL di kartu tim, thumbnail di detail tim, mapping di import/export JSON.
+- Print: tombol Cetak di view Juara → `window.print()`; blok `@media print` di `css/styles.css` menyembunyikan sidebar/nav/tombol.
+- Backup DB: `backend/tools/backup_db.js` (better-sqlite3 `db.backup`) + npm script `npm run backup` → `data/backups/leaderboard_<timestamp>.db`.
+- Perbaikan: `API.me()` ditambahkan di `js/api.js` (dipakai `init()`; sebelumnya token admin hilang setiap reload).
 
 | # | Fitur | Deskripsi | Pendekatan saran |
 |---|-------|-----------|------------------|
@@ -41,7 +47,7 @@ Daftar kandidat fitur baru berdasarkan audit kode `leaderboard_apps`. Semua bers
 | 7 | Reset password | Tidak ada alur lupa password. | Endpoint `POST /api/auth/forgot-password` + token reset sementara; frontend form sederhana. |
 | 10 | Audit log ✅ | Tidak ada catatan siapa mengubah data kapan. | Tabel `audit_log` (actor, action, target, created_at); insert di controller mutasi utama. |
 | 8 | Rate limiting login ✅ | Tidak ada batasan percobaan login. | Middleware sederhana (in-memory map IP → hit count + waktu) di route `/auth/login`. |
-| 9 | CORS | Tidak dikonfigurasi; risiko jika diakses dari domain lain. | Tambah `cors` atau header manual di `backend/server.js`. |
+| 9 | CORS ✅ | Tidak dikonfigurasi; risiko jika diakses dari domain lain. | Tambah `cors` atau header manual di `backend/server.js`. |
 
 ## Frontend UX (`app.js`, `index.html`)
 
@@ -49,25 +55,24 @@ Daftar kandidat fitur baru berdasarkan audit kode `leaderboard_apps`. Semua bers
 |---|-------|-----------|------------------|
 | 11 | Pencarian / filter tim ✅ | `renderTeams` menampilkan semua tanpa pencarian. | Input pencarian di `teams` view, filter array `CATEGORIES[cat].teams` sebelum render. |
 | 12 | Dark mode toggle | Sidebar gelap tapi body terang; tidak ada toggle. | Toggle class `dark` pada `body`, simpan preferensi `localStorage`, variabel CSS di `css/styles.css`. |
-| 13 | Print / PDF leaderboard & juara | Tidak ada opsi cetak. | Tombol Cetak → `window.print()` dengan CSS `@media print` yang menyembunyikan nav/sidebar. |
+| 13 | Print / PDF leaderboard & juara ✅ | Tidak ada opsi cetak. | Tombol Cetak → `window.print()` dengan CSS `@media print` yang menyembunyikan nav/sidebar. |
 | 14 | Live stream per pertandingan | Hanya satu URL YouTube global, tidak per match. | Kolom `live_url` per match di `results`; `renderInput` / `renderBracket` tampilkan link video per match. |
 
 ## Data & Operasi
 
 | # | Fitur | Deskripsi | Pendekatan saran |
 |---|-------|-----------|------------------|
-| 15 | Foto/logo tim | `teams` hanya `name`, `p1`, `p2`, `group_name`. | Tambah kolom `photo_url`; frontend input URL + tampilkan di `teamEditor` dan detail tim. |
-| 16 | Backup / restore DB | `inspect_db.js` hanya baca; tidak ada export/backup file DB. | Skrip CLI `node backend/tools/backup_db.js` yang copy `data/leaderboard.db` ke file timestamped. |
+| 15 | Foto/logo tim ✅ | `teams` hanya `name`, `p1`, `p2`, `group_name`. | Tambah kolom `photo_url`; frontend input URL + tampilkan di `teamEditor` dan detail tim. |
+| 16 | Backup / restore DB ✅ | `inspect_db.js` hanya baca; tidak ada export/backup file DB. | Skrip CLI `node backend/tools/backup_db.js` yang copy `data/leaderboard.db` ke file timestamped. |
 | 17 | Halaman pengaturan global | `pengaturan` hanya kelola kategori, bukan `settings` key-value. | Tabel di view `pengaturan` untuk edit key-value `settings` (mis. nama event, versi). |
 | 18 | Health check endpoint ✅ | Tidak ada `/health` atau `/ping`. | `GET /api/health` mengembalikan `{ ok: true, db: 'connected' }` tanpa auth. |
 
 ## Prioritas disarankan (mulai dari sini)
 
-1. **Foto/logo tim** (#15) — opsional.
-2. **Backup / restore DB** (#16).
-3. **Halaman pengaturan global** (#17).
-4. **CORS** (#9) — jika diakses lintas domain.
-5. **Daftar & cabut sesi aktif** (#7b) — manajemen sesi admin.
+1. **Halaman pengaturan global** (#17).
+2. **Live stream per pertandingan** (#14).
+3. **Reset password** (#7) + daftar & cabut sesi aktif (#7b).
+4. **Dark mode toggle** (#12) — opsional, UI sudah default gelap.
 
 ## Catatan
 

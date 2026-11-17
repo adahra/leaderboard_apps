@@ -46,6 +46,7 @@ function generateDefaultTeams(count, groupName) {
     name: `Tim ${i + 1}`,
     p1: "",
     p2: "",
+    photo: "",
     group: groupName
   }));
 }
@@ -507,6 +508,20 @@ function renderTeams(){
   });
 el.innerHTML=items.map(({t,i})=>`<div class="col-12 col-md-6 col-xl-4"><div class="card h-100"><div class="card-header d-flex justify-content-between align-items-center gap-2"><span class="text-info fw-bold">TEAM ${i+1}</span><div class="d-flex align-items-center gap-2"><span class="text-secondary small">${t.name.includes("BELUM")?"TAMBAHAN":"KUSTOM/DEFAULT"}</span><button class="btn btn-danger btn-sm admin-only" onclick="deleteSingleTeam(${i})" title="Hapus tim">🗑</button></div></div><div class="card-body"><div class="row g-2"><div class="col-6"><label class="form-label" for="tn${i+1}">Nama Tim / Sekolah</label><input id="tn${i+1}" class="form-control" value="${esc(t.name)}" ${ro}></div><div class="col-6"><label class="form-label">Kategori</label><input class="form-control" value="${esc(catLabel(currentCategory))}" disabled></div><div class="col-6"><label class="form-label" for="tp1${i+1}">Peserta 1</label><input id="tp1${i+1}" class="form-control" value="${esc(t.p1)}" ${ro}></div><div class="col-6"><label class="form-label" for="tp2${i+1}">Peserta 2</label><input id="tp2${i+1}" class="form-control" value="${esc(t.p2)}" ${ro}></div></div><div class="mt-2 small text-secondary">${esc(t.name)}<br>${esc(t.p1)} &amp; ${esc(t.p2)}</div></div></div></div>`).join("");
   if(!items.length) el.innerHTML=`<div class="col-12"><div class="alert alert-secondary mb-0">Tidak ada tim yang cocok dengan pencarian.</div></div>`;
+  enhanceTeamPhotoInputs(items);
+}
+function enhanceTeamPhotoInputs(items){
+  if(!items.length) return;
+  const ro = isAdmin() ? '' : 'disabled';
+  const rows = document.querySelectorAll('#teamEditor .card-body .row.g-2');
+  items.forEach(({t,i}, k)=>{
+    const row = rows[k];
+    if(!row) return;
+    const col = document.createElement('div');
+    col.className = 'col-12';
+    col.innerHTML = `<label class="form-label" for="tphoto${i+1}">Foto/Logo URL</label><input id="tphoto${i+1}" class="form-control" value="${esc(t.photo||'')}" ${ro}>`;
+    row.appendChild(col);
+  });
 }
 function schoolKey(name){
   return String(name||"")
@@ -585,7 +600,7 @@ function applyTeamCount(){
   if(!confirm(`Ubah jumlah tim ${catLabel(cat)} menjadi ${n}?\n\nHasil pertandingan kategori ini akan direset.`))return;
   while(arr.length<n){
     const idx=arr.length+1;
-    arr.push({id:idx,name:`Tim ${idx}`,p1:"",p2:"",group:catGroup(cat)});
+    arr.push({id:idx,name:`Tim ${idx}`,p1:"",p2:"",photo:"",group:catGroup(cat)});
   }
   arr.length=n;
   arr.forEach((t,i)=>{t.id=i+1; t.group=catGroup(cat);});
@@ -601,7 +616,7 @@ function addTeam(){
   if(arr.length>=128)return;
   if(!confirm(`Tambah 1 tim ke ${catLabel(cat)}?\n\nHasil pertandingan kategori ini akan direset.`))return;
   const idx=arr.length+1;
-  arr.push({id:idx,name:`Tim ${idx}`,p1:"",p2:"",group:catGroup(cat)});
+  arr.push({id:idx,name:`Tim ${idx}`,p1:"",p2:"",photo:"",group:catGroup(cat)});
   arr.forEach((t,i)=>{t.id=i+1;});
   CATEGORIES[cat].count=arr.length;
   state.results[cat]={};
@@ -660,7 +675,7 @@ function importTeamsJSON(){
         const teams=json.teams||json;
         if(!Array.isArray(teams))throw new Error("Format tidak valid");
         if(!confirm(`Impor ${teams.length} tim ke kategori ${catLabel(cat)}?\n\nHasil pertandingan kategori ini akan direset.`))return;
-        CATEGORIES[cat].teams=teams.map((t,i)=>({id:i+1,name:t.name||`Tim ${i+1}`,p1:t.p1||"",p2:t.p2||"",group:catGroup(cat)}));
+        CATEGORIES[cat].teams=teams.map((t,i)=>({id:i+1,name:t.name||`Tim ${i+1}`,p1:t.p1||"",p2:t.p2||"",photo:t.photo||t.photo_url||"",group:catGroup(cat)}));
         CATEGORIES[cat].count=CATEGORIES[cat].teams.length;
         state.results[cat]={};
         saveState();
@@ -697,6 +712,8 @@ function showTeamDetail(n,rank=null){
   document.getElementById("teamDetailSchool").textContent=t.name||"—";
   document.getElementById("teamDetailP1").textContent=t.p1||"—";
   document.getElementById("teamDetailP2").textContent=t.p2||"—";
+  const pw=document.getElementById("teamDetailPhotoWrap"),pi=document.getElementById("teamDetailPhoto");
+  if(pw&&pi){ if(t.photo){ pi.src=t.photo; pw.hidden=false; } else { pw.hidden=true; pi.removeAttribute("src"); } }
   showModal("teamDetailBackdrop");
 }
 function closeTeamDetail(){ hideModal("teamDetailBackdrop"); }
@@ -791,9 +808,11 @@ function saveTeams(){
     const tn=document.getElementById("tn"+(i+1));
     const tp1=document.getElementById("tp1"+(i+1));
     const tp2=document.getElementById("tp2"+(i+1));
+    const tph=document.getElementById("tphoto"+(i+1));
     if(tn) t.name=tn.value.trim()||`Tim ${i+1}`;
     if(tp1) t.p1=tp1.value.trim();
     if(tp2) t.p2=tp2.value.trim();
+    if(tph) t.photo=tph.value.trim();
     t.id=i+1;
     t.group=catGroup(cat);
   });
