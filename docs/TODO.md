@@ -37,6 +37,9 @@ Daftar kandidat fitur baru berdasarkan audit kode `leaderboard_apps`. Semua bers
 - Reset password (#7): kolom `users.reset_token` + `users.reset_token_expires` (+ migrasi idempoten `migrateResetTokenColumns`); endpoint publik `POST /api/auth/forgot-password` (buat token 32 byte, berlaku 1 jam, dikembalikan di respons karena tanpa email) dan `POST /api/auth/reset-password` (token sekali pakai; ganti `password_hash` + `salt`, hapus token, dan hapus semua sesi user tersebut).
 - Audit: `auth.forgot_password` dan `auth.reset_password` tercatat di `audit_log`.
 - Frontend: modal `#resetPasswordBackdrop` 2 langkah (username → token + password baru), dibuka lewat link "Lupa password?" di modal login; `openResetPasswordModal` menutup modal login dulu; `API.forgotPassword` / `API.resetPassword` di `js/api.js`.
+**Batch 6 — selesai:**
+- Manajemen sesi (#7b): `GET /api/auth/sessions` + `DELETE /api/auth/sessions/:token` (admin); kartu "Sesi Aktif" di view Pengaturan dengan badge "sesi ini" dan tombol Cabut (mencabut sesi sendiri = logout). Audit `auth.revoke_session`.
+- Halaman pengaturan global (#17): tabel editor key-value `settings` di view Pengaturan + endpoint `DELETE /api/settings/:key` (admin); `GET /api/settings` tetap publik, tulis hanya admin. Value di-`JSON.parse` saat disimpan bila valid (objek/angka/bool tetap bertipe), non-admin hanya melihat.
 
 | # | Fitur | Deskripsi | Pendekatan saran |
 |---|-------|-----------|------------------|
@@ -68,15 +71,14 @@ Daftar kandidat fitur baru berdasarkan audit kode `leaderboard_apps`. Semua bers
 |---|-------|-----------|------------------|
 | 15 | Foto/logo tim ✅ | `teams` hanya `name`, `p1`, `p2`, `group_name`. | Tambah kolom `photo_url`; frontend input URL + tampilkan di `teamEditor` dan detail tim. |
 | 16 | Backup / restore DB ✅ | `inspect_db.js` hanya baca; tidak ada export/backup file DB. | Skrip CLI `node backend/tools/backup_db.js` yang copy `data/leaderboard.db` ke file timestamped. |
-| 17 | Halaman pengaturan global | `pengaturan` hanya kelola kategori, bukan `settings` key-value. | Tabel di view `pengaturan` untuk edit key-value `settings` (mis. nama event, versi). |
+| 17 | Halaman pengaturan global ✅ | `pengaturan` hanya kelola kategori, bukan `settings` key-value. | Tabel di view `pengaturan` untuk edit key-value `settings` (mis. nama event, versi). |
 | 18 | Health check endpoint ✅ | Tidak ada `/health` atau `/ping`. | `GET /api/health` mengembalikan `{ ok: true, db: 'connected' }` tanpa auth. |
 
 ## Prioritas disarankan (mulai dari sini)
 
-1. **Halaman pengaturan global** (#17).
-2. **Live stream per pertandingan** (#14).
-3. **Daftar & cabut sesi aktif** (#7b) — reset password (#7) sudah mencabut sesi user terkait.
-4. **Dark mode toggle** (#12) — opsional, UI sudah default gelap.
+1. **Live stream per pertandingan** (#14).
+2. **Dark mode toggle** (#12) — opsional, UI sudah default gelap.
+3. Menambah test otomatis (belum ada test suite).
 
 ## Catatan
 

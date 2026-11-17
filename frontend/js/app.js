@@ -985,6 +985,85 @@ async function renderPengaturan(){
     }catch(e){}
   }
   el.innerHTML=rows.join("");
+  renderSettings();
+  renderSessions();
+}
+
+// ---- Pengaturan global (key-value settings) ----
+function settingValueText(v){
+  if(v===null||v===undefined)return"";
+  return typeof v==="object" ? JSON.stringify(v) : String(v);
+}
+async function renderSettings(){
+  const el=document.getElementById("settingsTableBody"); if(!el)return;
+  if(!document.getElementById("pengaturan")?.classList.contains("active"))return;
+  let set={};
+  try{ set=await API.getSettings(); }catch(e){}
+  const admin=isAdmin();
+  el.innerHTML=Object.keys(set).sort().map(k=>`<tr data-key="${esc(k)}">
+    <td><code>${esc(k)}</code></td>
+    <td><input class="form-control form-control-sm settings-value" value="${esc(settingValueText(set[k]))}" ${admin?"":"readonly"}></td>
+    <td>${admin?`<button class="btn btn-sm btn-danger" type="button" onclick="deleteSettingKey('${esc(k)}')">Hapus</button>`:""}</td>
+  </tr>`).join("") || `<tr><td colspan="3" class="text-secondary">Belum ada setting.</td></tr>`;
+}
+function addSettingRow(){
+  const el=document.getElementById("settingsTableBody"); if(!el)return;
+  const placeholder=el.querySelector("td[colspan]");
+  if(placeholder) placeholder.closest("tr").remove();
+  const tr=document.createElement("tr");
+  tr.innerHTML=`<td><input class="form-control form-control-sm settings-key" placeholder="key baru"></td>
+    <td><input class="form-control form-control-sm settings-value" placeholder="value"></td>
+    <td><button class="btn btn-sm btn-secondary" type="button" onclick="this.closest('tr').remove()">Batal</button></td>`;
+  el.appendChild(tr);
+  tr.querySelector(".settings-key").focus();
+}
+async function saveSettingsTable(){
+  const rows=[...document.querySelectorAll("#settingsTableBody tr")];
+  const body={};
+  rows.forEach(tr=>{
+    const key=tr.dataset.key || tr.querySelector(".settings-key")?.value.trim();
+    if(!key)return;
+    const raw=tr.querySelector(".settings-value")?.value ?? "";
+    let val=raw;
+    try{ val=JSON.parse(raw); }catch(e){}
+    body[key]=val;
+  });
+  try{
+    await API.saveSettings(body);
+    await renderSettings();
+    alert("Pengaturan disimpan.");
+  }catch(e){alert("Gagal menyimpan pengaturan: "+e.message);}
+}
+async function deleteSettingKey(key){
+  if(!confirm(`Hapus setting "${key}"?`))return;
+  try{
+    await API.deleteSetting(key);
+    await renderSettings();
+  }catch(e){alert("Gagal menghapus setting: "+e.message);}
+}
+
+// ---- Sesi aktif (admin) ----
+async function renderSessions(){
+  const el=document.getElementById("sessionsTableBody"); if(!el)return;
+  if(!document.getElementById("pengaturan")?.classList.contains("active"))return;
+  let rows=[];
+  try{ rows=await API.getSessions(); }catch(e){ el.innerHTML=`<tr><td colspan="5" class="text-secondary">Gagal memuat sesi: ${esc(e.message)}</td></tr>`; return; }
+  if(!Array.isArray(rows)||!rows.length){ el.innerHTML=`<tr><td colspan="5" class="text-secondary">Tidak ada sesi aktif.</td></tr>`; return; }
+  el.innerHTML=rows.map(s=>`<tr>
+    <td>${esc(s.username)}${s.token===API.token?` <span class="badge text-bg-info">sesi ini</span>`:""}</td>
+    <td><code>${esc(String(s.token).slice(0,8))}…</code></td>
+    <td class="small text-secondary">${esc(s.created_at||"")}</td>
+    <td class="small text-secondary">${esc(s.expires_at||"")}</td>
+    <td><button class="btn btn-sm btn-danger" type="button" onclick="revokeSessionToken('${esc(s.token)}')">Cabut</button></td>
+  </tr>`).join("");
+}
+async function revokeSessionToken(token){
+  if(!confirm("Cabut sesi ini? Pengguna akan diminta login ulang."))return;
+  try{
+    await API.revokeSession(token);
+    if(token===API.token){ API.setToken(''); AUTH_USER=null; applyAuthUI(); renderAll(); alert("Sesi Anda sendiri telah dicabut. Silakan login lagi."); return; }
+    await renderSessions();
+  }catch(e){alert("Gagal mencabut sesi: "+e.message);}
 }
 async function archiveCategory(){
   const key=window.__editingCategory;

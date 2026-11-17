@@ -31,3 +31,15 @@ exports.updateSettings = (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.deleteSetting = (req, res) => {
+  try {
+    const { key } = req.params;
+    const info = db.prepare('DELETE FROM settings WHERE key = ?').run(key);
+    if (!info.changes) return res.status(404).json({ error: 'Setting tidak ditemukan.' });
+    db.logAudit(req.user?.username || 'system', 'settings.delete', key, null);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

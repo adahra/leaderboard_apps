@@ -17,10 +17,12 @@ browser  →  fetch (API.js)  →  Express /api/*  →  controller  →  better-
 - `backend/routes/index.js`: mount `/auth`, `/teams`, `/results`, `/settings`, `/categories`, `/health`, `/audit`.
 - Kontroler di `backend/controllers/`: auth, teams, results, settings, categories. Semua impor `db` dari `backend/config/db.js` (singleton `better-sqlite3`).
 - `backend/config/db.js`: buka DB (`data/leaderboard.db`), WAL pragma, schema DDL (`teams`, `results`, `settings`, `categories`, `users`, `sessions`, `result_history`, `audit_log`), migrasi idempoten (buang `CHECK` kategori pada `teams`; `ALTER TABLE results` tambah `scheduled_at`/`status`; `ALTER TABLE categories` tambah `archived`; `ALTER TABLE teams` tambah `photo_url`; `ALTER TABLE users` tambah `reset_token`/`reset_token_expires`), seed kategori default (`junior`/`senior`) + user default. Helper `db.logAudit(actor, action, target, detail)`.
-- Frontend: `frontend/js/api.js` (fetch wrapper, token di `localStorage` `leaderboard_token`, `me()` untuk sesi, `forgotPassword`/`resetPassword`), `frontend/js/app.js` (semua logic UI/rendering, ~1030 baris), `frontend/index.html`.
+- Frontend: `frontend/js/api.js` (fetch wrapper, token di `localStorage` `leaderboard_token`, `me()` untuk sesi, `forgotPassword`/`resetPassword`, `getSessions`/`revokeSession`), `frontend/js/app.js` (semua logic UI/rendering, ~1140 baris), `frontend/index.html`.
 
 Data flow tulis: frontend `PUT` → controller `db.transaction` → `DELETE FROM ... WHERE category=?` lalu bulk re-insert. `updateResults` juga mencatat `result_history` bila nilai berubah (`changed_by` = `req.user.username`); penulisan identik tidak menambah baris. Read: `SELECT ... WHERE category=?`; riwayat skor/jadwal/status lewat `GET /api/results/history?category=<key>&match=<matchId>` (butuh admin).
 Auth & reset password: `POST /api/auth/login` (token sesi 7 hari di `sessions`), `POST /api/auth/logout`, `GET /api/auth/me`, dan alur lupa password — `POST /api/auth/forgot-password` (`{username}` → `{reset_token, expires_in}`; token 32 byte hex, berlaku 1 jam, **dikembalikan di respons** karena tidak ada email) serta `POST /api/auth/reset-password` (`{token, newPassword}`; token sekali pakai, ganti `password_hash` + `salt` baru, hapus token, **hapus semua sesi user**). Keduanya tercatat di `audit_log` (`auth.forgot_password`, `auth.reset_password`). Belum ada rate limit untuk `forgot-password`.
+Manajemen sesi (admin): `GET /api/auth/sessions` (join `sessions` + `users`: username, token, created_at, expires_at) dan `DELETE /api/auth/sessions/:token` (cabut satu sesi; `auth.revoke_session` di `audit_log`). Frontend menampilkan tabel "Sesi Aktif" di view Pengaturan (kartu `admin-only`), badge "sesi ini" untuk token yang sedang dipakai; mencabut sesi sendiri = logout.
+Pengaturan global: `GET /api/settings` (publik, JSON key-value), `PUT /api/settings` (admin, upsert massal; nilai di-`JSON.stringify` — string mentah tetap string, objek/angka/bool utuh), `DELETE /api/settings/:key` (admin, `settings.delete` di audit). View Pengaturan punya tabel editor key-value; pada baris baru key bisa diketik, value di-`JSON.parse` bila valid sehingga objek/angka tetap tersimpan sebagai tipe aslinya; non-admin hanya bisa melihat (input `readonly`, tombol simpan/hapus tersembunyi).
 
 ## Key Directories
 
@@ -100,10 +102,10 @@ router.put('/', auth.requireAdmin, teamsController.updateTeams);
 | `backend/controllers/authController.js` | Auth, session, reset password (`forgotPassword`/`resetPassword`), `requireAuth`/`requireAdmin` |
 | `backend/controllers/teamsController.js` | `getTeams`, `updateTeams`, `deleteTeam` |
 | `backend/controllers/resultsController.js` | `getResults`, `updateResults` (bulk replace + tulis `result_history`), `getResultHistory` |
-| `backend/controllers/settingsController.js` | `getSettings`, `updateSettings` |
+| `backend/controllers/settingsController.js` | `getSettings`, `updateSettings`, `deleteSetting` |
 | `backend/controllers/categoriesController.js` | CRUD kategori + `syncTeamCount` |
-| `frontend/js/api.js` | Fetch wrapper + token `localStorage`, `login`/`me`/`logout`/`forgotPassword`/`resetPassword` |
-| `frontend/js/app.js` | Semua logic UI/rendering turnamen |
+| `frontend/js/api.js` | Fetch wrapper + token `localStorage`, `login`/`me`/`logout`/`forgotPassword`/`resetPassword`/`getSessions`/`revokeSession` |
+| `frontend/js/app.js` | Semua logic UI/rendering turnamen; `renderSettings`/`saveSettingsTable`/`renderSessions`/`revokeSessionToken` |
 | `frontend/index.html` | SPA markup (7 view: bagan, input, leaderboard, juara, tim, live, pengaturan; modal: team detail, kategori, riwayat, login, reset password) |
 | `package.json` | Skrip `start`/`dev`/`backup`, dependensi express + better-sqlite3 |
 | `.gitignore` | `node_modules/`, logs, dll; `data/` **tidak** diignore |

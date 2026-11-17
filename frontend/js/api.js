@@ -69,6 +69,10 @@ const API = {
     });
   },
 
+  async deleteSetting(key) {
+    return this.request(`/api/settings/${encodeURIComponent(key)}`, { method: 'DELETE' });
+  },
+
   async getCategories(includeArchived = false) {
     return this.request(`/api/categories${includeArchived ? '?archived=1' : ''}`);
   },
@@ -129,6 +133,14 @@ const API = {
       body: JSON.stringify({ token, newPassword })
     });
     return data;
+  },
+  // ---- Session management (admin) ----
+  async getSessions() {
+    return this.request('/api/auth/sessions');
+  },
+
+  async revokeSession(token) {
+    return this.request(`/api/auth/sessions/${encodeURIComponent(token)}`, { method: 'DELETE' });
   },
 
   async getAudit(limit = 100) {

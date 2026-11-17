@@ -250,6 +250,33 @@
               </table>
             </div>
           </div>
+          <div class="card mt-3">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <h2 class="card-title h5 mb-0">Pengaturan Global</h2>
+              <div class="d-flex gap-2">
+                <button class="btn btn-secondary btn-sm admin-only" type="button" onclick="addSettingRow()">+ Tambah</button>
+                <button class="btn btn-primary btn-sm admin-only" type="button" onclick="saveSettingsTable()">💾 Simpan Semua</button>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <table class="table table-hover align-middle mb-0">
+                <thead><tr><th style="width:28%">Key</th><th>Value</th><th style="width:90px">Aksi</th></tr></thead>
+                <tbody id="settingsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card mt-3 admin-only">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <h2 class="card-title h5 mb-0">Sesi Aktif</h2>
+              <button class="btn btn-secondary btn-sm" type="button" onclick="renderSessions()">↻ Muat Ulang</button>
+            </div>
+            <div class="card-body p-0">
+              <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Pengguna</th><th>Token</th><th>Dibuat</th><th>Kedaluwarsa</th><th style="width:90px">Aksi</th></tr></thead>
+                <tbody id="sessionsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
         </section>
 
       </div>

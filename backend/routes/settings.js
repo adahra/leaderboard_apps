@@ -5,5 +5,6 @@ const auth = require('../controllers/authController');
 
 router.get('/', settingsController.getSettings);
 router.put('/', auth.requireAdmin, settingsController.updateSettings);
+router.delete('/:key', auth.requireAdmin, settingsController.deleteSetting);
 
 module.exports = router;

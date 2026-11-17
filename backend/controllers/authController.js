@@ -174,6 +174,34 @@ exports.me = (req, res) => {
   res.json({ user });
 };
 
+// ---- Session management (admin) ----
+exports.getSessions = (req, res) => {
+  try {
+    const rows = db.prepare(`
+      SELECT s.token, s.user_id, s.expires_at, s.created_at, u.username
+      FROM sessions s
+      JOIN users u ON u.id = s.user_id
+      ORDER BY s.created_at DESC
+    `).all();
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.revokeSession = (req, res) => {
+  try {
+    const { token } = req.params;
+    const row = db.prepare('SELECT user_id FROM sessions WHERE token = ?').get(token);
+    if (!row) return res.status(404).json({ error: 'Sesi tidak ditemukan.' });
+    db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
+    db.logAudit(req.user?.username || 'system', 'auth.revoke_session', null, `token=${token.slice(0,8)}… user_id=${row.user_id}`);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.createUser = (req, res) => {
   try {
     const { username, password, role } = req.body || {};
