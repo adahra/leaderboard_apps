@@ -7,6 +7,7 @@ router.get('/', c.getCategories);
 router.post('/', auth.requireAdmin, c.createCategory);
 router.put('/:key', auth.requireAdmin, c.updateCategory);
 router.delete('/:key', auth.requireAdmin, c.deleteCategory);
+router.patch('/:key/archive', auth.requireAdmin, c.archiveCategory);
 router.post('/:key/sync', auth.requireAdmin, c.syncTeamCount);
 
 module.exports = router;

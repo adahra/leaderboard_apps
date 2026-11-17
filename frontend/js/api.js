@@ -69,8 +69,8 @@ const API = {
     });
   },
 
-  async getCategories() {
-    return this.request('/api/categories');
+  async getCategories(includeArchived = false) {
+    return this.request(`/api/categories${includeArchived ? '?archived=1' : ''}`);
   },
 
   async createCategory(cat) {
@@ -89,8 +89,8 @@ const API = {
     });
   },
 
-  async deleteCategory(key) {
-    return this.request(`/api/categories/${encodeURIComponent(key)}`, { method: 'DELETE' });
+  async archiveCategory(key, archived = true) {
+    return this.request(`/api/categories/${encodeURIComponent(key)}/archive`, { method: 'PATCH', body: JSON.stringify({ archived }) });
   },
 
   async login(username, password) {

@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS categories (
   schema TEXT NOT NULL,
   team_count INTEGER NOT NULL DEFAULT 0,
   sort_order INTEGER NOT NULL DEFAULT 0,
+  archived INTEGER NOT NULL DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS users (
@@ -118,7 +119,11 @@ CREATE INDEX IF NOT EXISTS idx_result_history_cat_match ON result_history (categ
   if (!cols.includes('status')) db.exec('ALTER TABLE results ADD COLUMN status TEXT');
 })();
 
-// ---- Seed default categories ----
+// ---- Migration: tambah kolom archived pada categories (DB lama) ----
+(function migrateCategoriesArchived() {
+  const cols = db.prepare('PRAGMA table_info(categories)').all().map((c) => c.name);
+  if (!cols.includes('archived')) db.exec('ALTER TABLE categories ADD COLUMN archived INTEGER NOT NULL DEFAULT 0');
+})();
 const seed = db.prepare(`
   INSERT OR IGNORE INTO categories (key, label, schema, team_count, sort_order)
   VALUES (?, ?, ?, ?, ?)

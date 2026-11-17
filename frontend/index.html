@@ -190,6 +190,7 @@
           <div class="card mb-3">
             <div class="card-body d-flex gap-2 flex-wrap align-items-center">
               <span>Jumlah Tim: <b id="teamCountLabel">-</b></span>
+              <input id="teamSearch" type="search" class="form-control" style="width:220px" placeholder="Cari tim / peserta / grup" oninput="renderTeams()">
               <input id="teamCountInput" type="number" min="1" max="128" class="form-control" style="width:80px">
               <button class="btn btn-secondary btn-sm admin-only" onclick="applyTeamCount()">Terapkan Jumlah</button>
               <button class="btn btn-secondary btn-sm admin-only" onclick="addTeam()">+ Tambah Tim</button>
@@ -235,7 +236,7 @@
             <h1 class="h3 mb-1">⚙️ Pengaturan</h1>
             <p class="text-secondary mb-0">Kelola kategori kompetisi: tambah, edit, atau hapus. Kategori baru bisa menggunakan schema <code>knockout</code> (N tim → knockout hingga final) atau <code>junior44</code> (44 tim → 22 match awal → ranking poin → TOP 16 → knockdown).</p>
           </div>
-          <div class="nav nav-pills flex-wrap gap-2 mb-3" id="pengaturanCategoryBar"></div>
+          <div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="showArchivedCats" onchange="renderPengaturan()"><label class="form-check-label" for="showArchivedCats">Tampilkan kategori terarsip</label></div>
           <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
               <h2 class="card-title h5 mb-0">Daftar Kategori</h2>
@@ -324,6 +325,7 @@
         <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Batal</button>
         <div class="d-flex gap-2">
           <button class="btn btn-danger" type="button" id="categoryDeleteBtn" onclick="deleteCategory()" style="display:none">Hapus</button>
+          <button class="btn btn-warning" type="button" id="categoryArchiveBtn" onclick="archiveCategory()" style="display:none">Arsipkan</button>
           <button class="btn btn-primary" type="button" onclick="saveCategory()">Simpan</button>
         </div>
       </div>

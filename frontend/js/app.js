@@ -490,7 +490,13 @@ function renderTeams(){
   const inp=document.getElementById("teamCountInput"); if(inp){ inp.value=arr.length; inp.disabled=!isAdmin(); }
   document.getElementById("teamNote").innerHTML=`<b>${catLabel(currentCategory)}:</b> ${arr.length} tim. Data dapat ditambah/dikurangi dan diedit secara dinamis. Hasil pertandingan akan direset jika jumlah tim atau susunan berubah.`;
   const ro = isAdmin() ? '' : 'disabled';
-el.innerHTML=arr.map((t,i)=>`<div class="col-12 col-md-6 col-xl-4"><div class="card h-100"><div class="card-header d-flex justify-content-between align-items-center gap-2"><span class="text-info fw-bold">TEAM ${i+1}</span><div class="d-flex align-items-center gap-2"><span class="text-secondary small">${t.name.includes("BELUM")?"TAMBAHAN":"KUSTOM/DEFAULT"}</span><button class="btn btn-danger btn-sm admin-only" onclick="deleteSingleTeam(${i})" title="Hapus tim">🗑</button></div></div><div class="card-body"><div class="row g-2"><div class="col-6"><label class="form-label" for="tn${i+1}">Nama Tim / Sekolah</label><input id="tn${i+1}" class="form-control" value="${esc(t.name)}" ${ro}></div><div class="col-6"><label class="form-label">Kategori</label><input class="form-control" value="${esc(catLabel(currentCategory))}" disabled></div><div class="col-6"><label class="form-label" for="tp1${i+1}">Peserta 1</label><input id="tp1${i+1}" class="form-control" value="${esc(t.p1)}" ${ro}></div><div class="col-6"><label class="form-label" for="tp2${i+1}">Peserta 2</label><input id="tp2${i+1}" class="form-control" value="${esc(t.p2)}" ${ro}></div></div><div class="mt-2 small text-secondary">${esc(t.name)}<br>${esc(t.p1)} &amp; ${esc(t.p2)}</div></div></div></div>`).join("");
+  const q=(document.getElementById("teamSearch")?.value||"").trim().toLowerCase();
+  const items=arr.map((t,i)=>({t,i})).filter(({t})=>{
+    if(!q)return true;
+    return [t.name,t.p1,t.p2].some(v=>String(v||"").toLowerCase().includes(q));
+  });
+el.innerHTML=items.map(({t,i})=>`<div class="col-12 col-md-6 col-xl-4"><div class="card h-100"><div class="card-header d-flex justify-content-between align-items-center gap-2"><span class="text-info fw-bold">TEAM ${i+1}</span><div class="d-flex align-items-center gap-2"><span class="text-secondary small">${t.name.includes("BELUM")?"TAMBAHAN":"KUSTOM/DEFAULT"}</span><button class="btn btn-danger btn-sm admin-only" onclick="deleteSingleTeam(${i})" title="Hapus tim">🗑</button></div></div><div class="card-body"><div class="row g-2"><div class="col-6"><label class="form-label" for="tn${i+1}">Nama Tim / Sekolah</label><input id="tn${i+1}" class="form-control" value="${esc(t.name)}" ${ro}></div><div class="col-6"><label class="form-label">Kategori</label><input class="form-control" value="${esc(catLabel(currentCategory))}" disabled></div><div class="col-6"><label class="form-label" for="tp1${i+1}">Peserta 1</label><input id="tp1${i+1}" class="form-control" value="${esc(t.p1)}" ${ro}></div><div class="col-6"><label class="form-label" for="tp2${i+1}">Peserta 2</label><input id="tp2${i+1}" class="form-control" value="${esc(t.p2)}" ${ro}></div></div><div class="mt-2 small text-secondary">${esc(t.name)}<br>${esc(t.p1)} &amp; ${esc(t.p2)}</div></div></div></div>`).join("");
+  if(!items.length) el.innerHTML=`<div class="col-12"><div class="alert alert-secondary mb-0">Tidak ada tim yang cocok dengan pencarian.</div></div>`;
 }
 function schoolKey(name){
   return String(name||"")
@@ -812,7 +818,7 @@ function openCategoryModal(key=null){
     emptyBox.parentElement.parentElement.style.display=isEdit?"none":"";
   }
   document.getElementById("catOrderInput").value=cat?((CATEGORIES[key]||{}).sort_order||0):"";
-  document.getElementById("categoryDeleteBtn").style.display=isEdit?"":"none";
+  document.getElementById("categoryArchiveBtn").style.display=isEdit?"":"none";
   window.__editingCategory=key||null;
   showModal("categoryModalBackdrop");
 }
@@ -874,10 +880,11 @@ async function reloadCategories(){
   if(!CATEGORIES[currentCategory])currentCategory=keys[0]||"junior";
   renderAll();
 }
-function renderPengaturan(){
+async function renderPengaturan(){
   const el=document.getElementById("pengaturanTableBody");if(!el)return;
-  const keys=Object.keys(CATEGORIES).sort((a,b)=>(CATEGORIES[a].sort_order||0)-(CATEGORIES[b].sort_order)||0);
-  el.innerHTML=keys.map(k=>{
+  const showArchived=document.getElementById("showArchivedCats")?.checked;
+  const activeKeys=Object.keys(CATEGORIES).sort((a,b)=>(CATEGORIES[a].sort_order||0)-(CATEGORIES[b].sort_order)||0);
+  let rows=activeKeys.map(k=>{
     const c=CATEGORIES[k];
     return `<tr>
       <td><code>${esc(k)}</code></td>
@@ -887,10 +894,47 @@ function renderPengaturan(){
       <td>${c.sort_order||0}</td>
       <td>
         <button class="btn btn-sm btn-secondary" type="button" onclick="openCategoryModal('${k}')">Edit</button>
+        <button class="btn btn-sm btn-warning" type="button" onclick="archiveCategoryKey('${k}',true)">Arsip</button>
         <button class="btn btn-sm btn-danger" type="button" onclick="deleteCategoryByKey('${k}', '${esc(c.label)}')">Hapus</button>
       </td>
     </tr>`;
-  }).join("");
+  });
+  if(showArchived){
+    try{
+      const all=await API.getCategories(true);
+      const archived=(Array.isArray(all)?all:[]).filter(c=>c.archived);
+      rows=rows.concat(archived.map(c=>`<tr class="table-secondary">
+        <td><code>${esc(c.key)}</code></td>
+        <td>${esc(c.label)} <span class="badge text-bg-secondary">arsip</span></td>
+        <td>${esc(c.schema)}</td>
+        <td>${c.team_count}</td>
+        <td>${c.sort_order||0}</td>
+        <td>
+          <button class="btn btn-sm btn-success" type="button" onclick="archiveCategoryKey('${c.key}',false)">Pulihkan</button>
+        </td>
+      </tr>`));
+    }catch(e){}
+  }
+  el.innerHTML=rows.join("");
+}
+async function archiveCategory(){
+  const key=window.__editingCategory;
+  if(!key)return;
+  if(!confirm(`Arsipkan kategori ${catLabel(key)}? Kategori akan disembunyikan dari daftar aktif.`))return;
+  try{
+    await API.archiveCategory(key, true);
+    closeCategoryModal();
+    await reloadCategories();
+    alert("Kategori diarsipkan.");
+  }catch(e){alert("Gagal mengarsipkan kategori: "+e.message);}
+}
+async function archiveCategoryKey(key, archived){
+  try{
+    await API.archiveCategory(key, archived);
+    await reloadCategories();
+    await renderPengaturan();
+    alert(archived?"Kategori diarsipkan.":"Kategori dipulihkan.");
+  }catch(e){alert("Gagal mengubah status arsip: "+e.message);}
 }
 async function deleteCategoryByKey(key, label){
   if(!confirm(`Hapus kategori ${label}?\n\nSemua tim dan hasil pertandingan kategori ini akan hilang.`))return;

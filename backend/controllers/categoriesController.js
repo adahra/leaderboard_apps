@@ -9,10 +9,13 @@ function seedTeams(key, count, defGroup) {
   });
   tx();
 }
-
 exports.getCategories = (req, res) => {
   try {
-    const rows = db.prepare('SELECT key,label,schema,team_count,sort_order FROM categories ORDER BY sort_order, key').all();
+    const includeArchived = req.query.archived === '1' || req.query.all === '1';
+    const sql = includeArchived
+      ? 'SELECT key,label,schema,team_count,sort_order,archived FROM categories ORDER BY sort_order, key'
+      : 'SELECT key,label,schema,team_count,sort_order,archived FROM categories WHERE archived=0 ORDER BY sort_order, key';
+    const rows = db.prepare(sql).all();
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -50,6 +53,20 @@ exports.updateCategory = (req, res) => {
     const newOrder = sort_order !== undefined ? (Number.isFinite(Number(sort_order)) ? Number(sort_order) : cat.sort_order) : cat.sort_order;
     db.prepare('UPDATE categories SET label=?, schema=?, team_count=?, sort_order=? WHERE key=?').run(newLabel, newSchema, newCount, newOrder, key);
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+exports.archiveCategory = (req, res) => {
+  try {
+    const key = req.params.key;
+    const cat = db.prepare('SELECT * FROM categories WHERE key=?').get(key);
+    if (!cat) return res.status(404).json({ error: 'Kategori tidak ditemukan.' });
+    const archived = req.body && req.body.archived !== undefined
+      ? (req.body.archived === true || req.body.archived === 'true' || req.body.archived === 1 || req.body.archived === '1')
+      : true;
+    db.prepare('UPDATE categories SET archived=? WHERE key=?').run(archived ? 1 : 0, key);
+    res.json({ ok: true, archived });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -5,6 +5,43 @@ function hashPassword(password, salt) {
   return crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
 }
 
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_MAX_ATTEMPTS = 5;
+const loginAttempts = new Map();
+
+function loginKey(req) {
+  return (req.ip || req.socket?.remoteAddress || 'unknown').toString();
+}
+
+function checkLoginRateLimit(req, res) {
+  const key = loginKey(req);
+  const now = Date.now();
+  const rec = loginAttempts.get(key);
+  if (rec && now >= rec.resetAt) loginAttempts.delete(key);
+  const cur = loginAttempts.get(key);
+  if (cur && cur.count >= LOGIN_MAX_ATTEMPTS) {
+    const retryAfter = Math.ceil((cur.resetAt - now) / 1000);
+    res.status(429).json({ error: `Terlalu banyak percobaan login. Coba lagi dalam ${retryAfter} detik.` });
+    return false;
+  }
+  return true;
+}
+
+function recordLoginFailure(req) {
+  const key = loginKey(req);
+  const now = Date.now();
+  const rec = loginAttempts.get(key);
+  if (!rec || now >= rec.resetAt) {
+    loginAttempts.set(key, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
+  } else {
+    rec.count += 1;
+  }
+}
+
+function clearLoginAttempts(req) {
+  loginAttempts.delete(loginKey(req));
+}
+
 function createUserRecord(username, password, role) {
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = hashPassword(password, salt);
@@ -49,13 +86,15 @@ exports.requireAdmin = requireAdmin;
 exports.getSessionUser = getSessionUser;
 
 exports.login = (req, res) => {
+  if (!checkLoginRateLimit(req, res)) return;
   try {
     const { username, password } = req.body || {};
     if (!username || !password) return res.status(400).json({ error: 'Username dan password wajib diisi.' });
     const user = db.prepare('SELECT id, username, password_hash, salt, role FROM users WHERE username=?').get(username);
-    if (!user) return res.status(401).json({ error: 'Username atau password salah.' });
+    if (!user) { recordLoginFailure(req); return res.status(401).json({ error: 'Username atau password salah.' }); }
     const hash = hashPassword(password, user.salt);
-    if (hash !== user.password_hash) return res.status(401).json({ error: 'Username atau password salah.' });
+    if (hash !== user.password_hash) { recordLoginFailure(req); return res.status(401).json({ error: 'Username atau password salah.' }); }
+    clearLoginAttempts(req);
     const token = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     db.prepare('INSERT INTO sessions (token, user_id, expires_at) VALUES (?,?,?)').run(token, user.id, expires);
