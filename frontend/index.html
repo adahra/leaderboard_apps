@@ -109,7 +109,11 @@
         <section id="input" class="view">
           <div class="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-3">
             <div><h1 class="h3 mb-0">Input Hasil</h1><p class="text-secondary mb-0">Skor tersimpan otomatis di browser dan pemenang masuk ke babak berikutnya.</p></div>
-            <button class="btn btn-danger admin-only" onclick="resetResults()"><i class="bi bi-trash"></i> Reset Hasil</button>
+            <div class="d-flex gap-2 flex-wrap">
+              <button class="btn btn-secondary admin-only" onclick="exportResultsJSON()"><i class="bi bi-download"></i> Export JSON</button>
+              <button class="btn btn-secondary admin-only" onclick="importResultsJSON()"><i class="bi bi-upload"></i> Import JSON</button>
+              <button class="btn btn-danger admin-only" onclick="resetResults()"><i class="bi bi-trash"></i> Reset Hasil</button>
+            </div>
           </div>
           <div class="nav nav-pills flex-wrap gap-2 mb-3" id="inputCategoryBar"></div>
           <div id="inputEl"></div>
@@ -322,6 +326,22 @@
           <button class="btn btn-danger" type="button" id="categoryDeleteBtn" onclick="deleteCategory()" style="display:none">Hapus</button>
           <button class="btn btn-primary" type="button" onclick="saveCategory()">Simpan</button>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Riwayat perubahan skor modal -->
+<div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="historyTitle">Riwayat Perubahan Skor</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+      </div>
+      <div class="modal-body"><div id="historyBody" class="small"></div></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Tutup</button>
       </div>
     </div>
   </div>

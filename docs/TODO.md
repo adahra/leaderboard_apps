@@ -4,11 +4,20 @@ Daftar kandidat fitur baru berdasarkan audit kode `leaderboard_apps`. Semua bers
 
 ## Skor & Pertandingan (`results`)
 
-| # | Fitur | Deskripsi | Pendekatan saran |
-|---|-------|-----------|------------------|
-| 1 | Jadwal & status pertandingan | Tabel `results` hanya punya skor + winner. Tambah jadwal dan status (`belum dimulai`, `berlangsung`, `selesai`). | Tambah kolom `scheduled_at`, `status` pada `results`; controller `GET/PUT` ikut menampung kolom baru; frontend `renderInput` tampilkan status. |
-| 2 | Riwayat perubahan skor | `updateResults` bulk replace tidak menyimpan history. | Tabel `result_history` (id, match_id, sa, sb, winner, changed_at, changed_by); insert dalam transaksi bersama update `results`. |
-| 3 | Export/import hasil JSON | `teams` punya export/import, `results` belum. | Tambah endpoint `GET/POST /api/results/:category/export-import` atau reuse payload `results` yang sudah ada. |
+| # | Fitur | Deskripsi | Pendekatan saran | Status |
+|---|-------|-----------|------------------|--------|
+| 1 | Jadwal & status pertandingan | Tabel `results` hanya punya skor + winner. Kini ada jadwal dan status (`belum`, `berlangsung`, `selesai`). | Kolom `scheduled_at`, `status` pada `results`; controller `GET/PUT` menampung kolom baru; `renderInput` menampilkan status + input jadwal. | ✅ |
+| 2 | Riwayat perubahan skor | `updateResults` bulk replace kini mencatat riwayat. | Tabel `result_history` diisi di dalam transaksi yang sama, hanya saat nilai benar-benar berubah. | ✅ |
+| 3 | Export/import hasil JSON | Tombol Export/Import JSON di view "Input Hasil" (admin). | Reuse payload `results`; tidak perlu endpoint baru. | ✅ |
+
+**Selesai — detail implementasi:**
+
+- Kolom `results.scheduled_at` (TEXT) dan `results.status` (TEXT: `belum` | `berlangsung` | `selesai`); DB lama dimigrasi lewat `ALTER TABLE` di `backend/config/db.js` (`migrateResultsColumns`).
+- Tabel `result_history` (+ index `idx_result_history_cat_match`) menyimpan `category, match_id, a, b, sa, sb, winner, scheduled_at, status, changed_by, changed_at`.
+- `updateResults` membandingkan nilai lama vs baru per match dan hanya menulis riwayat bila ada perubahan nyata; `changed_by` diambil dari `req.user.username`. Karena `saveState()` mengirim seluruh kategori setiap 300 ms, penulisan identik tidak menambah baris riwayat.
+- Endpoint baru: `GET /api/results/history?category=<key>&match=<matchId>` (butuh admin) — maksimum 100 baris bila `match` diisi, 200 baris bila tidak.
+- Frontend: tiap match card punya select Status, input Jadwal (`datetime-local`), dan tombol Riwayat (modal Bootstrap `#historyModal`); tombol Export/Import JSON ada di header view "Input Hasil". Select/input dinonaktifkan dan tombol disembunyikan untuk non-admin.
+- `saveResult`/`addPoint` memakai spread record lama (`{...getRec(id)}`) supaya `status`/`scheduled_at` tidak hilang saat skor disimpan.
 
 ## Kategori & Turnamen (`categories`)
 
@@ -48,10 +57,10 @@ Daftar kandidat fitur baru berdasarkan audit kode `leaderboard_apps`. Semua bers
 
 ## Prioritas disarankan (mulai dari sini)
 
-1. **Jadwal & status pertandingan** (#1) — aditif, risiko rendah, manfaat langsung.
-2. **Soft delete kategori** (#4) — mencegah kehilangan data saat hapus salah.
-3. **Pencarian / filter tim** (#11) — UX langsung terasa, kode kecil.
-4. **Rate limiting login** (#8) — keamanan dasar, kecil.
+1. **Soft delete kategori** (#4) — mencegah kehilangan data saat hapus salah.
+2. **Pencarian / filter tim** (#11) — UX langsung terasa, kode kecil.
+3. **Rate limiting login** (#8) — keamanan dasar, kecil.
+4. **Audit log** (#10) — sebagian sudah tercakup `result_history` untuk hasil pertandingan.
 
 ## Catatan
 

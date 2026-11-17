@@ -51,6 +51,12 @@ const API = {
     });
   },
 
+  async getResultHistory(category = 'junior', matchId = null) {
+    const q = new URLSearchParams({ category });
+    if (matchId) q.set('match', matchId);
+    return this.request(`/api/results/history?${q.toString()}`);
+  },
+
   async getSettings() {
     return this.request('/api/settings');
   },

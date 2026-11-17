@@ -5,5 +5,6 @@ const auth = require('../controllers/authController');
 
 router.get('/', resultsController.getResults);
 router.put('/', auth.requireAdmin, resultsController.updateResults);
+router.get('/history', auth.requireAdmin, resultsController.getResultHistory);
 
 module.exports = router;

@@ -224,22 +224,88 @@ function saveResult(id,sa,sb){
   sa=Number(sa);sb=Number(sb);
   if(!Number.isFinite(sa)||!Number.isFinite(sb)||sa<0||sb<0){alert("Skor tidak valid.");return}
   if(!state.results[currentCategory]) state.results[currentCategory]={};
+  const patch={a:m.a,b:m.b,sa,sb};
   if(sa===sb){
     alert("Skor seri. Gunakan tombol sudden death +1 setelah hasil disimpan.");
-    state.results[currentCategory][id]={a:m.a,b:m.b,sa,sb,winner:null};
+    state.results[currentCategory][id]={...getRec(id),...patch,winner:null};
     saveState();
     renderAll();
     return;
   }
   const winner=sa>sb?m.a:m.b;
-  state.results[currentCategory][id]={a:m.a,b:m.b,sa,sb,winner};saveState();renderAll();
+  state.results[currentCategory][id]={...getRec(id),...patch,winner};saveState();renderAll();
 }
 function addPoint(id,side){
   const m=getMatches()[id],rec=getRec(id);if(!m||!m.a||!m.b)return;
   if(!state.results[currentCategory]) state.results[currentCategory]={};
   let sa=Number(rec.sa||0),sb=Number(rec.sb||0);side==="a"?sa++:sb++;
   const winner=sa>sb?m.a:sb>sa?m.b:null;
-  state.results[currentCategory][id]={a:m.a,b:m.b,sa,sb,winner};saveState();renderAll();
+  state.results[currentCategory][id]={...getRec(id),a:m.a,b:m.b,sa,sb,winner};saveState();renderAll();
+}
+const MATCH_STATUS={belum:"Belum",berlangsung:"Berlangsung",selesai:"Selesai"};
+const MATCH_STATUS_BADGE={belum:"text-bg-secondary",berlangsung:"text-bg-warning",selesai:"text-bg-success"};
+function toLocalInput(v){
+  if(!v)return "";
+  const s=String(v);
+  return s.length>=16?s.slice(0,16):s;
+}
+function setMatchMeta(id,field,value){
+  const m=getMatches()[id];if(!m)return;
+  if(!state.results[currentCategory]) state.results[currentCategory]={};
+  const prev=state.results[currentCategory][id]||{a:m.a,b:m.b,sa:"",sb:"",winner:null};
+  state.results[currentCategory][id]={...prev,[field]:value||null};
+  saveState();
+  renderInput();
+}
+async function showResultHistory(id){
+  document.getElementById("historyTitle").textContent=`Riwayat • ${id.toUpperCase()}`;
+  const body=document.getElementById("historyBody");
+  body.innerHTML='<div class="text-secondary">Memuat…</div>';
+  showModal("historyModal");
+  try{
+    const rows=await API.getResultHistory(currentCategory,id);
+    body.innerHTML=rows.length
+      ?`<table class="table table-sm align-middle mb-0"><thead><tr><th>Waktu</th><th>Skor</th><th>Status</th><th>Jadwal</th><th>Oleh</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.changed_at)}</td><td>${esc(r.sa??"-")} – ${esc(r.sb??"-")}</td><td>${esc(r.status||"-")}</td><td>${esc(r.scheduled_at||"-")}</td><td>${esc(r.changed_by||"-")}</td></tr>`).join("")}</tbody></table>`
+      :'<div class="text-secondary">Belum ada riwayat perubahan.</div>';
+  }catch(e){
+    body.innerHTML=`<div class="text-danger">Gagal memuat riwayat: ${esc(e.message)}</div>`;
+  }
+}
+function exportResultsJSON(){
+  const cat=currentCategory;
+  const data=JSON.stringify({category:cat,results:state.results[cat]||{}},null,2);
+  const blob=new Blob([data],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=`results_${cat}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importResultsJSON(){
+  const cat=currentCategory;
+  const input=document.createElement("input");
+  input.type="file";
+  input.accept="application/json";
+  input.onchange=e=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const json=JSON.parse(ev.target.result);
+        const results=json.results||json;
+        if(!results||typeof results!=="object"||Array.isArray(results))throw new Error("Format tidak valid");
+        if(!confirm(`Impor ${Object.keys(results).length} hasil pertandingan ke kategori ${catLabel(cat)}?\n\nHasil kategori ini akan diganti.`))return;
+        state.results[cat]=results;
+        saveState();
+        renderAll();
+        alert("Hasil pertandingan berhasil diimpor.");
+      }catch(err){alert("Gagal mengimpor JSON: "+err.message);}
+    };
+    reader.readAsText(file);
+  };
+  input.click();
 }
 function slotHTML(m,n){
   if(!n)return `<div class="slot empty"><span class="seed">–</span><span class="slot-name">Menunggu</span></div>`;
@@ -362,7 +428,10 @@ function drawBracketConnectors(){
 window.addEventListener("resize",()=>{clearTimeout(window.__bracketResize);window.__bracketResize=setTimeout(drawBracketConnectors,80)});
 function inputMatch(id){
   const m=getMatches()[id],rec=getRec(id),has=playable(m),bye=(m.a&&!m.b)||(m.b&&!m.a),submitted=has&&rec.sa!==undefined&&rec.sa!==""&&rec.sb!=="",tie=submitted&&Number(rec.sa)===Number(rec.sb);
-  return `<div class="card mb-3 ${m.winner?"border-success":""}"><div class="card-header d-flex justify-content-between align-items-center"><span class="text-info fw-bold">${label(m.round)}</span><span class="text-secondary small">${id.toUpperCase()}</span></div><div class="card-body"><div class="row g-2 align-items-center"><div class="col"><div class="border rounded p-2 h-100 ${m.winner===m.a?"border-success bg-success-subtle":""}"><b>${tname(m.a)}</b><div class="small text-secondary">${m.a?members(m.a):"Menunggu tim"}</div><input id="${id}a" type="number" min="0" class="form-control text-center fw-bold mt-2" value="${rec.sa??""}" ${has&&!isAdmin()?"disabled":has?"":"disabled"}></div></div><div class="col-auto fw-bold text-secondary">VS</div><div class="col"><div class="border rounded p-2 h-100 ${m.winner===m.b?"border-success bg-success-subtle":""}"><b>${tname(m.b)}</b><div class="small text-secondary">${m.b?members(m.b):"Menunggu tim"}</div><input id="${id}b" type="number" min="0" class="form-control text-center fw-bold mt-2" value="${rec.sb??""}" ${has&&!isAdmin()?"disabled":has?"":"disabled"}></div></div></div><div class="mt-3 d-flex gap-2 flex-wrap align-items-center">${has&&isAdmin()?`<button class="btn btn-primary admin-only" onclick="saveResult('${id}',document.getElementById('${id}a').value,document.getElementById('${id}b').value)">Simpan Hasil</button>`:has?'<span class="text-secondary small">Hanya admin yang dapat menginput hasil</span>':bye?'<span class="badge text-bg-success">AUTO BYE</span>':'<span class="text-secondary small">Menunggu tim / pemenang babak sebelumnya</span>'}${m.winner?`<span class="badge text-bg-success">🏆 ${tname(m.winner)}</span>`:""}</div>${tie?`<div class="alert alert-warning mb-0 mt-3 d-flex gap-2 align-items-center flex-wrap">⚡ Seri. Sudden death: <button class="btn btn-sm btn-secondary" onclick="addPoint('${id}','a')">+1 ${tname(m.a)}</button> <button class="btn btn-sm btn-secondary" onclick="addPoint('${id}','b')">+1 ${tname(m.b)}</button></div>`:""}</div></div>`;
+  const st=rec.status||"belum";
+  const stBadge=MATCH_STATUS_BADGE[st]||"text-bg-secondary";
+  const ro=isAdmin()?"":"disabled";
+  return `<div class="card mb-3 ${m.winner?"border-success":""}"><div class="card-header d-flex justify-content-between align-items-center"><span class="text-info fw-bold">${label(m.round)}</span><span class="d-flex align-items-center gap-2"><span class="badge ${stBadge}">${MATCH_STATUS[st]||st}</span><span class="text-secondary small">${id.toUpperCase()}</span></span></div><div class="card-body"><div class="row g-2 align-items-center"><div class="col"><div class="border rounded p-2 h-100 ${m.winner===m.a?"border-success bg-success-subtle":""}"><b>${tname(m.a)}</b><div class="small text-secondary">${m.a?members(m.a):"Menunggu tim"}</div><input id="${id}a" type="number" min="0" class="form-control text-center fw-bold mt-2" value="${rec.sa??""}" ${has&&!isAdmin()?"disabled":has?"":"disabled"}></div></div><div class="col-auto fw-bold text-secondary">VS</div><div class="col"><div class="border rounded p-2 h-100 ${m.winner===m.b?"border-success bg-success-subtle":""}"><b>${tname(m.b)}</b><div class="small text-secondary">${m.b?members(m.b):"Menunggu tim"}</div><input id="${id}b" type="number" min="0" class="form-control text-center fw-bold mt-2" value="${rec.sb??""}" ${has&&!isAdmin()?"disabled":has?"":"disabled"}></div></div></div><div class="mt-2 d-flex gap-2 flex-wrap align-items-center"><span class="small text-secondary">Status</span><select class="form-select form-select-sm w-auto" ${ro} onchange="setMatchMeta('${id}','status',this.value)">${Object.keys(MATCH_STATUS).map(v=>`<option value="${v}" ${st===v?"selected":""}>${MATCH_STATUS[v]}</option>`).join("")}</select><span class="small text-secondary">Jadwal</span><input type="datetime-local" class="form-control form-control-sm w-auto" value="${toLocalInput(rec.scheduled_at)}" ${ro} onchange="setMatchMeta('${id}','scheduled_at',this.value)"><button class="btn btn-sm btn-outline-secondary admin-only" type="button" onclick="showResultHistory('${id}')">Riwayat</button></div><div class="mt-3 d-flex gap-2 flex-wrap align-items-center">${has&&isAdmin()?`<button class="btn btn-primary admin-only" onclick="saveResult('${id}',document.getElementById('${id}a').value,document.getElementById('${id}b').value)">Simpan Hasil</button>`:has?'<span class="text-secondary small">Hanya admin yang dapat menginput hasil</span>':bye?'<span class="badge text-bg-success">AUTO BYE</span>':'<span class="text-secondary small">Menunggu tim / pemenang babak sebelumnya</span>'}${m.winner?`<span class="badge text-bg-success">🏆 ${tname(m.winner)}</span>`:""}</div>${tie?`<div class="alert alert-warning mb-0 mt-3 d-flex gap-2 align-items-center flex-wrap">⚡ Seri. Sudden death: <button class="btn btn-sm btn-secondary" onclick="addPoint('${id}','a')">+1 ${tname(m.a)}</button> <button class="btn btn-sm btn-secondary" onclick="addPoint('${id}','b')">+1 ${tname(m.b)}</button></div>`:""}</div></div>`;
 }
 function renderInput(){
   const ids=Object.keys(getMatches());

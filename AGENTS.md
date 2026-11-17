@@ -16,10 +16,10 @@ browser  →  fetch (API.js)  →  Express /api/*  →  controller  →  better-
 - `backend/server.js`: JSON body parser (5mb), `express.static(FRONTEND_DIR)`, mount `/api` router, SPA fallback ke `index.html`, centralized 500 error handler. Exports `app`; `app.listen` hanya saat `require.main === module`.
 - `backend/routes/index.js`: mount `/auth`, `/teams`, `/results`, `/settings`, `/categories`.
 - Kontroler di `backend/controllers/`: auth, teams, results, settings, categories. Semua impor `db` dari `backend/config/db.js` (singleton `better-sqlite3`).
-- `backend/config/db.js`: buka DB (`data/leaderboard.db`), WAL pragma, schema DDL (`teams`, `results`, `settings`, `categories`, `users`, `sessions`), migrasi satu kali (buang `CHECK` kategori pada `teams`), seed kategori default (`junior`/`senior`) + user default.
+- `backend/config/db.js`: buka DB (`data/leaderboard.db`), WAL pragma, schema DDL (`teams`, `results`, `settings`, `categories`, `users`, `sessions`, `result_history`), migrasi idempoten (buang `CHECK` kategori pada `teams`; `ALTER TABLE results` tambah `scheduled_at`/`status`), seed kategori default (`junior`/`senior`) + user default.
 - Frontend: `frontend/js/api.js` (fetch wrapper, token di `localStorage` `leaderboard_token`), `frontend/js/app.js` (semua logic UI/rendering, ~859 baris), `frontend/index.html`.
 
-Data flow tulis: frontend `PUT` → controller `db.transaction` → `DELETE FROM ... WHERE category=?` lalu bulk re-insert. Read: `SELECT ... WHERE category=?`.
+Data flow tulis: frontend `PUT` → controller `db.transaction` → `DELETE FROM ... WHERE category=?` lalu bulk re-insert. `updateResults` juga mencatat `result_history` bila nilai berubah (`changed_by` = `req.user.username`); penulisan identik tidak menambah baris. Read: `SELECT ... WHERE category=?`; riwayat skor/jadwal/status lewat `GET /api/results/history?category=<key>&match=<matchId>` (butuh admin).
 
 ## Key Directories
 
@@ -97,12 +97,12 @@ router.put('/', auth.requireAdmin, teamsController.updateTeams);
 | `backend/config/db.js` | DB singleton, schema, migration, seed |
 | `backend/controllers/authController.js` | Auth, session, `requireAuth`/`requireAdmin` |
 | `backend/controllers/teamsController.js` | `getTeams`, `updateTeams`, `deleteTeam` |
-| `backend/controllers/resultsController.js` | `getResults`, `updateResults` |
+| `backend/controllers/resultsController.js` | `getResults`, `updateResults` (bulk replace + tulis `result_history`), `getResultHistory` |
 | `backend/controllers/settingsController.js` | `getSettings`, `updateSettings` |
 | `backend/controllers/categoriesController.js` | CRUD kategori + `syncTeamCount` |
 | `frontend/js/api.js` | Fetch wrapper + token `localStorage` |
 | `frontend/js/app.js` | Semua logic UI/rendering turnamen |
-| `frontend/index.html` | SPA markup (7 view: bagan, input, leaderboard, juara, tim, live, pengaturan) |
+| `frontend/index.html` | SPA markup (7 view: bagan, input, leaderboard, juara, tim, live, pengaturan; modal: team detail, kategori, riwayat, login) |
 | `package.json` | Skrip `start`/`dev`, dependensi express + better-sqlite3 |
 | `.gitignore` | `node_modules/`, logs, dll; `data/` **tidak** diignore |
 

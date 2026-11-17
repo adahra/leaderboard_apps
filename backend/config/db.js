@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS results (
   sa TEXT,
   sb TEXT,
   winner INTEGER,
+  scheduled_at TEXT,
+  status TEXT,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS settings (
@@ -62,6 +64,21 @@ CREATE TABLE IF NOT EXISTS sessions (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users (id)
 );
+CREATE TABLE IF NOT EXISTS result_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  category TEXT NOT NULL,
+  match_id TEXT NOT NULL,
+  a INTEGER,
+  b INTEGER,
+  sa TEXT,
+  sb TEXT,
+  winner INTEGER,
+  scheduled_at TEXT,
+  status TEXT,
+  changed_by TEXT,
+  changed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_result_history_cat_match ON result_history (category, match_id);
 `);
 
 // ---- Migration: buang CHECK(category IN ('junior','senior)) agar kategori custom diperbolehkan ----
@@ -92,6 +109,13 @@ CREATE TABLE IF NOT EXISTS sessions (
   } catch (e) {
     console.error('Gagal migrasi teams constraint:', e.message);
   }
+})();
+
+// ---- Migration: tambah kolom jadwal/status pada results (DB lama) ----
+(function migrateResultsColumns() {
+  const cols = db.prepare('PRAGMA table_info(results)').all().map((c) => c.name);
+  if (!cols.includes('scheduled_at')) db.exec('ALTER TABLE results ADD COLUMN scheduled_at TEXT');
+  if (!cols.includes('status')) db.exec('ALTER TABLE results ADD COLUMN status TEXT');
 })();
 
 // ---- Seed default categories ----
