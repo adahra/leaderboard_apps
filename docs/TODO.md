@@ -33,6 +33,10 @@ Daftar kandidat fitur baru berdasarkan audit kode `leaderboard_apps`. Semua bers
 - Print: tombol Cetak di view Juara → `window.print()`; blok `@media print` di `css/styles.css` menyembunyikan sidebar/nav/tombol.
 - Backup DB: `backend/tools/backup_db.js` (better-sqlite3 `db.backup`) + npm script `npm run backup` → `data/backups/leaderboard_<timestamp>.db`.
 - Perbaikan: `API.me()` ditambahkan di `js/api.js` (dipakai `init()`; sebelumnya token admin hilang setiap reload).
+**Batch 5 — selesai:**
+- Reset password (#7): kolom `users.reset_token` + `users.reset_token_expires` (+ migrasi idempoten `migrateResetTokenColumns`); endpoint publik `POST /api/auth/forgot-password` (buat token 32 byte, berlaku 1 jam, dikembalikan di respons karena tanpa email) dan `POST /api/auth/reset-password` (token sekali pakai; ganti `password_hash` + `salt`, hapus token, dan hapus semua sesi user tersebut).
+- Audit: `auth.forgot_password` dan `auth.reset_password` tercatat di `audit_log`.
+- Frontend: modal `#resetPasswordBackdrop` 2 langkah (username → token + password baru), dibuka lewat link "Lupa password?" di modal login; `openResetPasswordModal` menutup modal login dulu; `API.forgotPassword` / `API.resetPassword` di `js/api.js`.
 
 | # | Fitur | Deskripsi | Pendekatan saran |
 |---|-------|-----------|------------------|
@@ -44,7 +48,7 @@ Daftar kandidat fitur baru berdasarkan audit kode `leaderboard_apps`. Semua bers
 
 | # | Fitur | Deskripsi | Pendekatan saran |
 |---|-------|-----------|------------------|
-| 7 | Reset password | Tidak ada alur lupa password. | Endpoint `POST /api/auth/forgot-password` + token reset sementara; frontend form sederhana. |
+| 7 | Reset password ✅ | Tidak ada alur lupa password. | Endpoint `POST /api/auth/forgot-password` + token reset sementara; frontend form sederhana. |
 | 10 | Audit log ✅ | Tidak ada catatan siapa mengubah data kapan. | Tabel `audit_log` (actor, action, target, created_at); insert di controller mutasi utama. |
 | 8 | Rate limiting login ✅ | Tidak ada batasan percobaan login. | Middleware sederhana (in-memory map IP → hit count + waktu) di route `/auth/login`. |
 | 9 | CORS ✅ | Tidak dikonfigurasi; risiko jika diakses dari domain lain. | Tambah `cors` atau header manual di `backend/server.js`. |
@@ -71,7 +75,7 @@ Daftar kandidat fitur baru berdasarkan audit kode `leaderboard_apps`. Semua bers
 
 1. **Halaman pengaturan global** (#17).
 2. **Live stream per pertandingan** (#14).
-3. **Reset password** (#7) + daftar & cabut sesi aktif (#7b).
+3. **Daftar & cabut sesi aktif** (#7b) — reset password (#7) sudah mencabut sesi user terkait.
 4. **Dark mode toggle** (#12) — opsional, UI sudah default gelap.
 
 ## Catatan

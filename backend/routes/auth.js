@@ -6,5 +6,6 @@ router.post('/login', auth.login);
 router.post('/logout', auth.requireAuth, auth.logout);
 router.get('/me', auth.me);
 router.post('/users', auth.requireAdmin, auth.createUser);
-
+router.post('/forgot-password', auth.forgotPassword);
+router.post('/reset-password', auth.resetPassword);
 module.exports = router;

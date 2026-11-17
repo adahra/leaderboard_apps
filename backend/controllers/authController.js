@@ -47,6 +47,27 @@ function createUserRecord(username, password, role) {
   const hash = hashPassword(password, salt);
   db.prepare('INSERT INTO users (username, password_hash, salt, role) VALUES (?,?,?,?)').run(username, hash, salt, role);
 }
+// ---- Reset password helpers ----
+function generateResetToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+function setResetToken(userId, token) {
+  const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+  db.prepare('UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?').run(token, expires, userId);
+}
+function clearResetToken(userId) {
+  db.prepare('UPDATE users SET reset_token = NULL, reset_token_expires = NULL WHERE id = ?').run(userId);
+}
+function validateResetToken(token) {
+  const row = db.prepare('SELECT id, reset_token_expires FROM users WHERE reset_token = ?').get(token);
+  if (!row) return null;
+  if (new Date(row.reset_token_expires) <= new Date()) {
+    // token expired, clear it
+    db.prepare('UPDATE users SET reset_token = NULL, reset_token_expires = NULL WHERE id = ?').run(row.id);
+    return null;
+  }
+  return row.id;
+}
 
 function getSessionUser(req) {
   const auth = req.headers.authorization || '';
@@ -109,6 +130,39 @@ exports.logout = (req, res) => {
     const auth = req.headers.authorization || '';
     const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : null;
     if (token) db.prepare('DELETE FROM sessions WHERE token=?').run(token);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+// ---- Password reset handlers ----
+exports.forgotPassword = (req, res) => {
+  try {
+    const { username } = req.body || {};
+    if (!username) return res.status(400).json({ error: 'Username diperlukan.' });
+    const user = db.prepare('SELECT id FROM users WHERE username=?').get(username);
+    if (!user) return res.status(404).json({ error: 'Pengguna tidak ditemukan.' });
+    const token = generateResetToken();
+    setResetToken(user.id, token);
+    db.logAudit(username, 'auth.forgot_password', username, 'reset token dibuat (berlaku 1 jam)');
+    res.json({ reset_token: token, expires_in: '1 hour' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.resetPassword = (req, res) => {
+  try {
+    const { token, newPassword } = req.body || {};
+    if (!token || !newPassword) return res.status(400).json({ error: 'Token dan password baru diperlukan.' });
+    const userId = validateResetToken(token);
+    if (!userId) return res.status(400).json({ error: 'Token tidak valid atau sudah kedaluwarsa.' });
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hash = hashPassword(newPassword, salt);
+    db.prepare('UPDATE users SET password_hash = ?, salt = ? WHERE id = ?').run(hash, salt, userId);
+    clearResetToken(userId);
+    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId); // password ganti -> sesi lama tidak valid
+    db.logAudit('system', 'auth.reset_password', null, `user_id=${userId}`);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

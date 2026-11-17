@@ -749,6 +749,46 @@ async function doLogout(){
   renderAll();
 }
 
+// ---- Reset password (lupa password) ----
+function openResetPasswordModal(){
+  const s1=document.getElementById('resetStep1'), s2=document.getElementById('resetStep2');
+  if(s1) s1.style.display='';
+  if(s2) s2.style.display='none';
+  const b1=document.getElementById('resetStep1Btn'), b2=document.getElementById('resetStep2Btn');
+  if(b1) b1.style.display='';
+  if(b2) b2.style.display='none';
+  ['resetStep1Status','resetStep2Status'].forEach(id=>{const el=document.getElementById(id); if(el) el.textContent='';});
+  const u=document.getElementById('resetUsername'); if(u) u.value=document.getElementById('loginUsername')?.value.trim()||'';
+  closeLoginModal();
+  showModal('resetPasswordBackdrop');
+}
+function closeResetPasswordModal(){ hideModal('resetPasswordBackdrop'); }
+async function handleForgotPasswordStep1(){
+  const username=document.getElementById('resetUsername').value.trim();
+  const st=document.getElementById('resetStep1Status');
+  if(!username){ if(st) st.textContent='Username wajib diisi.'; return; }
+  try{
+    const data=await API.forgotPassword(username);
+    document.getElementById('resetToken').value=data.reset_token;
+    document.getElementById('resetStep1').style.display='none';
+    document.getElementById('resetStep2').style.display='';
+    document.getElementById('resetStep1Btn').style.display='none';
+    document.getElementById('resetStep2Btn').style.display='';
+    if(st) st.textContent='';
+  }catch(e){ if(st) st.textContent='Gagal: '+e.message; }
+}
+async function handleResetPasswordStep2(){
+  const token=document.getElementById('resetToken').value.trim();
+  const newPassword=document.getElementById('resetNewPassword').value;
+  const st=document.getElementById('resetStep2Status');
+  if(!token||!newPassword){ if(st) st.textContent='Token dan password baru wajib diisi.'; return; }
+  try{
+    await API.resetPassword(token,newPassword);
+    closeResetPasswordModal();
+    alert('Password berhasil diubah. Silakan login dengan password baru.');
+  }catch(e){ if(st) st.textContent='Gagal: '+e.message; }
+}
+
 async function init(){
   try{
     const cats = await API.getCategories().catch(()=>[]);

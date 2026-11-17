@@ -57,6 +57,8 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   salt TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'user',
+  reset_token TEXT,
+  reset_token_expires DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS sessions (
@@ -139,6 +141,12 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log (created_at);
 (function migrateTeamsPhoto() {
   const cols = db.prepare('PRAGMA table_info(teams)').all().map((c) => c.name);
   if (!cols.includes('photo_url')) db.exec("ALTER TABLE teams ADD COLUMN photo_url TEXT DEFAULT ''");
+})();
+// ---- Migration: tambah kolom reset_token & reset_token_expires pada users (DB lama) ----
+(function migrateResetTokenColumns() {
+  const cols = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
+  if (!cols.includes('reset_token')) db.exec('ALTER TABLE users ADD COLUMN reset_token TEXT');
+  if (!cols.includes('reset_token_expires')) db.exec('ALTER TABLE users ADD COLUMN reset_token_expires DATETIME');
 })();
 const seed = db.prepare(`
   INSERT OR IGNORE INTO categories (key, label, schema, team_count, sort_order)

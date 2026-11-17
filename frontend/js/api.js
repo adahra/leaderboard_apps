@@ -111,6 +111,25 @@ const API = {
   async me() {
     return this.request('/api/auth/me');
   },
+  // ---- Forgot password ----
+  async forgotPassword(username) {
+    const data = await this.request('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    return data;
+  },
+
+  // ---- Reset password ----
+  async resetPassword(token, newPassword) {
+    const data = await this.request('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, newPassword })
+    });
+    return data;
+  },
 
   async getAudit(limit = 100) {
     return this.request(`/api/audit?limit=${limit}`);
