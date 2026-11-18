@@ -17,7 +17,18 @@
   --line2: #315474;
   --green: #6fe3b8;
 }
-
+html[data-bs-theme="light"] {
+  --gold: #b07f2c;
+  --silver: #4a5b6a;
+  --bronze: #a2603c;
+  --accent: #0077b3;
+  --muted: #495057;
+  --muted2: #6c757d;
+  --panel: #f8f9fa;
+  --line: #dee2e6;
+  --line2: #ced4da;
+  --green: #28a745;
+}
 * { box-sizing: border-box }
 html { overflow-x: hidden; scroll-behavior: smooth }
 body { background-image: radial-gradient(circle at 50% -20%, #10283e 0, transparent 42%) }

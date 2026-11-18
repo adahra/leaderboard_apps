@@ -25,7 +25,7 @@ Daftar kandidat fitur baru berdasarkan audit kode `leaderboard_apps`. Semua bers
 - Pencarian tim: input `#teamSearch` di view Data Tim, filter nama/peserta sebelum render (index asli tetap dipakai untuk edit/hapus).
 **Batch 3 — selesai:**
 - Tabel `audit_log` (+ index `idx_audit_log_created`) + helper `db.logAudit`; insert di mutasi kategori/tim/hasil/settings/auth; endpoint `GET /api/audit` (admin).
-- Tie-breaking junior44: setelah poin, selisih gol, menang, tambah head-to-head (pemenang langsung menang tie-break).
+- Tie-breaking double_elimination: setelah poin, selisih gol, menang, tambah head-to-head (pemenang langsung menang tie-break).
 - Knockout jumlah ganjil: babak pertama otomatis bye untuk tim terakhir; badge AUTO BYE + winner auto.
 **Batch 4 — selesai:**
 - CORS opt-in: middleware di `backend/server.js` aktif hanya bila `CORS_ORIGIN` di-set; header `Access-Control-Allow-*` + preflight `OPTIONS` 204.
@@ -44,7 +44,7 @@ Daftar kandidat fitur baru berdasarkan audit kode `leaderboard_apps`. Semua bers
 | # | Fitur | Deskripsi | Pendekatan saran |
 |---|-------|-----------|------------------|
 | 4 | Soft delete / arsip kategori ✅ | `deleteCategory` hard delete dan diblokir jika masih ada tim. | Tambah kolom `archived` boolean pada `categories`; `getCategories` filter default `archived=0`; endpoint baru `PATCH /api/categories/:key/archive`. |
-| 5 | Aturan tie-breaking ✅ | Ranking `junior44` hanya poin, belum ada penyeimbang (selisih gol, head-to-head). | Logika `juniorRankMap` / `juniorLeaderboardIds` di `app.js` tambah perhitungan selisih gol dan head-to-head. |
+| 5 | Aturan tie-breaking ✅ | Ranking `double_elimination` hanya poin, belum ada penyeimbang (selisih gol, head-to-head). | Logika `doubleEliminationRankMap` / `doubleEliminationLeaderboardIds` di `app.js` tambah perhitungan selisih gol dan head-to-head. |
 | 6 | Bye untuk jumlah ganjil knockout ✅ | `knockout` asume pohon sempurna (2^n); belum ditangani jika count ganjil. | `getMatches` / `generateDefaultTeams` tambah mekanisme bye di babak pertama. |
 
 ## Auth & Keamanan (`auth`)

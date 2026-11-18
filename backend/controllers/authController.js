@@ -110,6 +110,8 @@ exports.login = (req, res) => {
   try {
     const { username, password } = req.body || {};
     if (!username || !password) return res.status(400).json({ error: 'Username dan password wajib diisi.' });
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) return res.status(400).json({ error: 'Format username tidak valid.' });
+    if (!checkLoginRateLimit(req, res)) return;
     const user = db.prepare('SELECT id, username, password_hash, salt, role FROM users WHERE username=?').get(username);
     if (!user) { recordLoginFailure(req); return res.status(401).json({ error: 'Username atau password salah.' }); }
     const hash = hashPassword(password, user.salt);
@@ -169,6 +171,32 @@ exports.resetPassword = (req, res) => {
   }
 };
 
+exports.changePassword = (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body || {};
+    if (!oldPassword || !newPassword) return res.status(400).json({ error: 'Password lama dan password baru diperlukan.' });
+    const user = getSessionUser(req);
+    if (!user) return res.status(401).json({ error: 'Login diperlukan.' });
+    const userRecord = db.prepare('SELECT id, password_hash, salt FROM users WHERE id = ?').get(user.id);
+    if (!userRecord) return res.status(404).json({ error: 'Pengguna tidak ditemukan.' });
+    const hash = hashPassword(oldPassword, userRecord.salt);
+    if (hash !== userRecord.password_hash) return res.status(401).json({ error: 'Password lama tidak valid.' });
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hashNew = hashPassword(newPassword, salt);
+    db.prepare('UPDATE users SET password_hash = ?, salt = ? WHERE id = ?').run(hashNew, salt, user.id);
+    // Cabut semua sesi user yang sedang aktif (security)
+    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(user.id);
+    db.logAudit(user.username, 'auth.change_password', user.username, 'password berhasil diganti');
+    // Generate token baru untuk session
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    db.prepare('INSERT INTO sessions (token, user_id, expires_at) VALUES (?,?,?)').run(token, user.id, expires);
+    res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.me = (req, res) => {
   const user = getSessionUser(req);
   res.json({ user });
@@ -207,11 +235,44 @@ exports.createUser = (req, res) => {
     const { username, password, role } = req.body || {};
     if (!username || !password) return res.status(400).json({ error: 'Username dan password wajib diisi.' });
     if (!/^[a-zA-Z0-9_]+$/.test(username)) return res.status(400).json({ error: 'Username tidak valid.' });
-    const r = ['admin', 'user', 'guest'].includes(role) ? role : 'user';
+    const r = ['admin', 'user', 'guest', 'viewer'].includes(role) ? role : 'user';
     createUserRecord(username, password, r);
     res.json({ ok: true });
   } catch (err) {
     if (String(err.message).includes('UNIQUE')) return res.status(409).json({ error: 'Username sudah ada.' });
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getUsers = (req, res) => {
+  try {
+    const users = db.prepare('SELECT id, username, role, created_at, last_login FROM users ORDER BY created_at DESC').all();
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getUser = (req, res) => {
+  try {
+    const { username } = req.params;
+    const user = db.prepare('SELECT id, username, role, created_at, last_login FROM users WHERE username=?').get(username);
+    if (!user) return res.status(404).json({ error: 'User tidak ditemukan.' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.deleteUser = (req, res) => {
+  try {
+    const { username } = req.params;
+    const user = db.prepare('SELECT id FROM users WHERE username=?').get(username);
+    if (!user) return res.status(404).json({ error: 'User tidak ditemukan.' });
+    db.prepare('DELETE FROM users WHERE username=?').run(username);
+    res.json({ ok: true });
+  } catch (err) {
+    if (String(err.message).includes('FOREIGN KEY')) return res.status(500).json({ error: 'Tidak bisa menghapus user.' });
     res.status(500).json({ error: err.message });
   }
 };

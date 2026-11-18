@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>UGOT COMPETITION 2026 — Junior 44 & Senior 16</title>
+<title>UGOT COMPETITION 2026 : Junior 44 & Senior 16</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.2/font/bootstrap-icons.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.17.0/styles/overlayscrollbars.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@4.10.2/dist/css/adminlte.min.css">
@@ -128,7 +128,7 @@
         <section id="leaderboard" class="view active">
           <div class="mb-3">
             <h1 class="h3 mb-1">Leaderboard</h1>
-            <p class="text-secondary mb-0">Kategori junior44: semua tim diranking berdasarkan poin pertandingan awal; tim yang kalah tetap membawa poin dan berpeluang masuk 16 besar. Kategori knockout: pemenang maju, kalah keluar.</p>
+            <p class="text-secondary mb-0">Kategori double_elimination: semua tim diranking berdasarkan poin pertandingan awal; tim yang kalah tetap membawa poin dan berpeluang masuk 16 besar. Kategori single_elimination: pemenang maju, kalah keluar.</p>
           </div>
           <div class="nav nav-pills flex-wrap gap-2 mb-3" id="leaderCategoryBar"></div>
           <div class="card">
@@ -225,7 +225,7 @@
                 <div class="card-header"><h2 class="card-title h6 mb-0">⚙️ Pengaturan Live</h2></div>
                 <div class="card-body">
                   <div class="mb-3"><label class="form-label" for="liveName">Nama Event</label><input id="liveName" class="form-control" placeholder="UGOT COMPETITION 2026"></div>
-                  <div class="mb-3"><label class="form-label" for="liveMatch">Keterangan</label><input id="liveMatch" class="form-control" placeholder="Junior — Final"></div>
+                  <div class="mb-3"><label class="form-label" for="liveMatch">Keterangan</label><input id="liveMatch" class="form-control" placeholder="Junior : Final"></div>
                   <div class="mb-3"><label class="form-label" for="liveUrl">Link YouTube Live</label><input id="liveUrl" class="form-control" placeholder="https://www.youtube.com/watch?v=..."></div>
                   <div class="d-flex gap-2 flex-wrap">
                     <button class="btn btn-primary" onclick="applyLive()">▶️ Tampilkan Live</button>
@@ -241,7 +241,7 @@
         <section id="pengaturan" class="view">
           <div class="mb-3">
             <h1 class="h3 mb-1">⚙️ Pengaturan</h1>
-            <p class="text-secondary mb-0">Kelola kategori kompetisi: tambah, edit, atau hapus. Kategori baru bisa menggunakan schema <code>knockout</code> (N tim → knockout hingga final) atau <code>junior44</code> (44 tim → 22 match awal → ranking poin → TOP 16 → knockdown).</p>
+            <p class="text-secondary mb-0">Kelola kategori kompetisi: tambah, edit, atau hapus. Kategori baru bisa menggunakan schema <code>single_elimination</code> (N tim → knockout hingga final) atau <code>double_elimination</code> (44 tim → 22 match awal → ranking poin → TOP 16 → knockdown).</p>
           </div>
           <div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="showArchivedCats" onchange="renderPengaturan()"><label class="form-check-label" for="showArchivedCats">Tampilkan kategori terarsip</label></div>
           <div class="card">
@@ -293,7 +293,7 @@
 
   <footer class="app-footer">
     <div class="float-end d-none d-sm-inline">Leaderboard Apps</div>
-    <strong>UGOT Competition</strong> — Leaderboard Apps
+    <strong>UGOT Competition</strong> : Leaderboard Apps
   </footer>
 
 </div>
@@ -312,11 +312,11 @@
       </div>
       <div class="modal-body">
         <div class="row g-2">
-          <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small fw-bold text-uppercase">Nomor / Seed</div><div class="fw-bold" id="teamDetailNo">—</div></div></div>
-          <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small fw-bold text-uppercase">Kategori</div><div class="fw-bold" id="teamDetailCategory">—</div></div></div>
-          <div class="col-12"><div class="border rounded p-3"><div class="text-secondary small fw-bold text-uppercase">Sekolah / Tim</div><div class="fw-bold" id="teamDetailSchool">—</div></div></div>
-          <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small fw-bold text-uppercase">Peserta 1</div><div class="fw-bold" id="teamDetailP1">—</div></div></div>
-          <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small fw-bold text-uppercase">Peserta 2</div><div class="fw-bold" id="teamDetailP2">—</div></div></div>
+          <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small fw-bold text-uppercase">Nomor / Seed</div><div class="fw-bold" id="teamDetailNo">:</div></div></div>
+          <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small fw-bold text-uppercase">Kategori</div><div class="fw-bold" id="teamDetailCategory">:</div></div></div>
+          <div class="col-12"><div class="border rounded p-3"><div class="text-secondary small fw-bold text-uppercase">Sekolah / Tim</div><div class="fw-bold" id="teamDetailSchool">:</div></div></div>
+          <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small fw-bold text-uppercase">Peserta 1</div><div class="fw-bold" id="teamDetailP1">:</div></div></div>
+          <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small fw-bold text-uppercase">Peserta 2</div><div class="fw-bold" id="teamDetailP2">:</div></div></div>
           <div class="col-12" id="teamDetailPhotoWrap" hidden><div class="border rounded p-3 text-center"><div class="text-secondary small fw-bold text-uppercase mb-2">Foto / Logo</div><img id="teamDetailPhoto" src="" alt="Foto tim" class="img-fluid rounded" style="max-height:160px"></div></div>
         </div>
       </div>
@@ -346,7 +346,7 @@
           <div class="col-6"><label class="form-label" for="catSchemaInput">Schema</label>
             <select id="catSchemaInput" class="form-select">
               <option value="knockout">knockout</option>
-              <option value="junior44">junior44</option>
+              <option value="double_elimination">double_elimination</option>
             </select>
           </div>
           <div class="col-6"><label class="form-label" for="catCountInput">Jumlah Tim</label><input id="catCountInput" type="number" min="0" max="128" class="form-control"></div>
@@ -438,7 +438,60 @@
       </div>
     </div>
   </div>
-</div>
+
+  <!-- User management modal -->
+  <div class="modal fade" id="userModalBackdrop" tabindex="-1" aria-labelledby="userModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <div class="text-info small fw-bold text-uppercase">USER</div>
+            <h5 class="modal-title" id="userModalTitle">Tambah/Edit User</h5>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3"><label class="form-label" for="userUsername">Username</label><input id="userUsername" class="form-control" placeholder="contoh: newuser"></div>
+          <div class="mb-3"><label class="form-label" for="userPassword">Password</label><input id="userPassword" type="password" class="form-control" placeholder="Password"></div>
+          <div class="mb-3"><label class="form-label" for="userRole">Role</label><select id="userRole" class="form-control"><option value="user">User</option><option value="admin">Admin</option><option value="viewer">Viewer</option><option value="guest">Guest</option></select></div>
+          <div class="mb-3"><label class="form-label" for="userStatus">Status</label><select id="userStatus" class="form-control"><option value="active">Aktif</option><option value="inactive">Tidak Aktif</option></select></div>
+          <div id="userModalStatus" class="small text-secondary"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Batal</button>
+          <button class="btn btn-primary" onclick="saveUser()">Simpan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change password for current user modal -->
+  <div class="modal fade" id="changePasswordBackdrop" tabindex="-1" aria-labelledby="changePasswordTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <div class="text-warning small fw-bold text-uppercase">SECURITY</div>
+            <h5 class="modal-title" id="changePasswordTitle">Ubah Password</h5>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-info small">
+            <strong>Perhatian:</strong> Mengubah password akan membuat semua sesi pengguna tidak valid. Anda akan perlu login ulang.
+          </div>
+          <div class="mb-3"><label class="form-label" for="changePasswordCurrent">Password Saat Ini</label><input id="changePasswordCurrent" type="password" class="form-control" placeholder="Password saat ini"></div>
+          <div class="mb-3"><label class="form-label" for="changePasswordNew">Password Baru</label><input id="changePasswordNew" type="password" class="form-control" placeholder="Password baru (min 8 karakter)"></div>
+          <div class="mb-3"><label class="form-label" for="changePasswordConfirm">Konfirmasi Password Baru</label><input id="changePasswordConfirm" type="password" class="form-control" placeholder="Konfirmasi password baru"></div>
+          <div id="changePasswordError" class="small text-danger"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Batal</button>
+          <button class="btn btn-warning" onclick="handleChangeCurrentPassword()">Ubah Password</button>
+        </div>
+      </div>
+    </div>
+  </div>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.9/dist/js/bootstrap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.17.0/browser/overlayscrollbars.browser.es6.min.js"></script>

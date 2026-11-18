@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
 CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log (created_at);
 `);
 
-// ---- Migration: buang CHECK(category IN ('junior','senior)) agar kategori custom diperbolehkan ----
+// ---- Migration: buang CHECK(category IN ('single_elimination','double_elimination')) agar kategori custom diperbolehkan ----
 (function migrateTeamsConstraint() {
   const row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='teams'").get();
   if (!row || !row.sql) return;
@@ -157,7 +157,7 @@ const seed = db.prepare(`
   INSERT OR IGNORE INTO categories (key, label, schema, team_count, sort_order)
   VALUES (?, ?, ?, ?, ?)
 `);
-seed.run('junior', 'JUNIOR', 'junior44', 44, 1);
+seed.run('junior', 'JUNIOR', 'double_elimination', 44, 1);
 seed.run('senior', 'SENIOR', 'knockout', 16, 2);
 
 // ---- Seed default users ----

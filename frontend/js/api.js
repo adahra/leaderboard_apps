@@ -143,7 +143,34 @@ const API = {
     return this.request(`/api/auth/sessions/${encodeURIComponent(token)}`, { method: 'DELETE' });
   },
 
+  async createUser(username, password, role = 'user') {
+    return this.request('/api/auth/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, role })
+    });
+  },
+
+  isAdmin(role) { return role === 'admin'; },
+  isViewer(role) { return role === 'viewer'; },
+  canEdit(role) { return this.isAdmin(role) || role === 'user'; },
+  canView(role) { return ['admin', 'user', 'viewer'].includes(role); },
+
   async getAudit(limit = 100) {
     return this.request(`/api/audit?limit=${limit}`);
+  },
+
+  async deleteCategory(key) {
+    return this.request(`/api/categories/${encodeURIComponent(key)}`, { method: 'DELETE' });
+  },
+
+  async changePassword(oldPassword, newPassword) {
+    const data = await this.request('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oldPassword, newPassword })
+    });
+    this.setToken(data.token);
+    return data;
   },
 };

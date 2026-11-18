@@ -4,7 +4,7 @@
 const CATEGORIES = {};
 function ensureCategories(){
   if (!CATEGORIES.junior) {
-    CATEGORIES.junior = {label:"JUNIOR", count:44, teams:[], schema:"junior44", sort_order:1};
+    CATEGORIES.junior = {label:"JUNIOR", count:44, teams:[], schema:"double_elimination", sort_order:1};
     CATEGORIES.senior = {label:"SENIOR", count:16, teams:[], schema:"knockout", sort_order:2};
   }
 }
@@ -14,6 +14,10 @@ const state={category:"junior", results:{}, teams:null, categories:null};
 let currentCategory="junior";
 let AUTH_USER=null;
 function isAdmin(){return !!(AUTH_USER && AUTH_USER.role === 'admin');}
+function isViewer(){return !!(AUTH_USER && AUTH_USER.role === 'viewer');}
+function isUser(){return !!(AUTH_USER && AUTH_USER.role === 'user');}
+function canEdit(){return isAdmin() || isUser();}
+function canView(){return isAdmin() || isUser() || isViewer();}
 function applyAuthUI(){
   const isAd=isAdmin();
   document.body.classList.toggle('is-admin', isAd);
@@ -37,7 +41,8 @@ document.getElementById('darkToggle')?.addEventListener('click', ()=>{
 let saveTimer=null;
 // Schema helpers
 function schemaFor(key){ return (CATEGORIES[key]||{}).schema || "knockout"; }
-function isJunior44(key){ return schemaFor(key) === "junior44"; }
+function isDoubleElimination(key){ return schemaFor(key) === "double_elimination"; }
+function isKnockout(key){ return schemaFor(key) === "knockout"; }
 function roundNo(r){
   if(!r) return 0;
   if(r === "r44") return 0;
@@ -81,7 +86,7 @@ function saveState(){
 }
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
 function team(n){const teams=CATEGORIES[currentCategory]?.teams;return n && teams ? teams[n-1] : null}
-function tname(n){const t=team(n);return t?esc(t.name):"—"}
+function tname(n){const t=team(n);return t?esc(t.name):":"}
 function members(n){const t=team(n);return t?`${esc(t.p1)} &amp; ${esc(t.p2)}`:"Belum ditentukan"}
 function setCategory(cat){currentCategory=cat;saveState();renderAll()}
 function categoryButtons(target){
@@ -94,7 +99,7 @@ function label(r){
   const n=teamCount(key);
   const totalRounds=Math.ceil(Math.log2(Math.max(n,2)));
   const labels={};
-  if(isJunior44(key)){
+  if(isDoubleElimination(key)){
     labels.r44=`${n} Peserta • ${Math.floor(n/2)} Match`;
     labels.rank="Leaderboard • TOP 16";
     labels.r1="16 Besar";
@@ -131,7 +136,7 @@ function advanceWinner(m){
   berpeluang masuk TOP 16. Setelah seluruh 22 match selesai, ranking 1-16
   masuk ke babak 16 Besar.
 */
-function juniorSelectionStats(){
+function doubleEliminationSelectionStats(){
   const key=currentCategory;
   const n=teamCount(key), m=Math.floor(n/2), stats={};
   for(let i=1;i<=n;i++)stats[i]={id:i,played:false,wins:0,points:0,against:0,diff:0,matchIndex:0};
@@ -150,7 +155,27 @@ function juniorSelectionStats(){
   }
   return stats;
 }
-function juniorOpeningComplete(){
+// New functions for double elimination (renamed from junior versions)
+function doubleEliminationSelectionStats(){
+  const key=currentCategory;
+  const n=teamCount(key), m=Math.floor(n/2), stats={};
+  for(let i=1;i<=n;i++)stats[i]={id:i,played:false,wins:0,points:0,against:0,diff:0,matchIndex:0};
+  const results = (state.results && state.results[key]) || {};
+  for(let i=1;i<=m;i++){
+    const id="r44m"+i,rec=results[id];
+    if(!rec||!rec.a||!rec.b||rec.sa===""||rec.sb==="")continue;
+    const a=Number(rec.sa),b=Number(rec.sb),A=stats[rec.a],B=stats[rec.b];
+    A.played=B.played=true;
+    A.points=a;B.points=b;
+    A.against=b;B.against=a;
+    A.diff=a-b;B.diff=b-a;
+    A.matchIndex=B.matchIndex=i;
+    if(rec.winner===rec.a)A.wins=1;
+    if(rec.winner===rec.b)B.wins=1;
+  }
+  return stats;
+}
+function doubleEliminationOpeningComplete(){
   const key=currentCategory;
   const m=Math.floor(teamCount(key)/2);
   const results = (state.results && state.results[key]) || {};
@@ -161,9 +186,9 @@ function juniorOpeningComplete(){
   }
   return done===m;
 }
-function juniorLeaderboardIds(){
+function doubleEliminationLeaderboardIds(){
   const key=currentCategory;
-  const stats=juniorSelectionStats();
+  const stats=doubleEliminationSelectionStats();
   const n=teamCount(key);
   const results=(state.results && state.results[key]) || {};
   const directWin=new Map();
@@ -181,10 +206,10 @@ function juniorLeaderboardIds(){
     return (A.matchIndex-B.matchIndex)||(a-b);
   });
 }
-function juniorRankMap(){
-  const ids=juniorLeaderboardIds(),map={};
+function doubleEliminationRankMap(){
+  const ids=doubleEliminationLeaderboardIds(),map={};
   const top16=16;
-  if(!juniorOpeningComplete())return map;
+  if(!doubleEliminationOpeningComplete())return map;
   ids.slice(0,top16).forEach((n,i)=>map[i+1]=n);
   return map;
 }
@@ -192,13 +217,13 @@ function getMatches(){
   const out={};
   const key=currentCategory;
   const n=teamCount(key);
-  if(isJunior44(key)){
+  if(isDoubleElimination(key)){
     const m=Math.floor(n/2);
     for(let i=1;i<=m;i++){
       const a=(i-1)*2+1,b=a+1;
       out["r44m"+i]=makeMatch("r44m"+i,a,b,"r44");
     }
-    const rank=juniorRankMap();
+    const rank=doubleEliminationRankMap();
     for(let i=1;i<=8;i++){
       const a=rank[i]||null,b=rank[17-i]||null;
       out["r1m"+i]=makeMatch("r1m"+i,a,b,"r1");
@@ -341,7 +366,7 @@ function matchHTML(id,extra=""){
 function renderRound(ids,r){return `<div class="round"><div class="round-title">${label(r)}</div><div class="round-body">${ids.map(id=>matchHTML(id)).join("")}</div></div>`}
 function rankPanelHTML(){
   const key=currentCategory;
-  const ids=juniorLeaderboardIds(),stats=juniorSelectionStats(),rows=[],complete=juniorOpeningComplete(),n=teamCount(key);
+  const ids=doubleEliminationLeaderboardIds(),stats=doubleEliminationSelectionStats(),rows=[],complete=doubleEliminationOpeningComplete(),n=teamCount(key);
   for(let i=1;i<=n;i++){
     const id=ids[i-1],st=stats[id],qualified=complete&&i<=16;
     const status=complete?(qualified?"LOLOS 16 BESAR":"TIDAK LOLOS"):"MASIH BERPELUANG";
@@ -374,7 +399,7 @@ function renderBracket(){
       h+=renderRound(ids,rk);
     }
   });
-  if(isJunior44(key)){
+  if(isDoubleElimination(key)){
     h+=`<div class="round leaderboard-round" data-flow-node="leaderboard"><div class="round-title">Leaderboard • TOP 16</div><div class="round-body">${rankPanelHTML()}</div></div>`;
   }
   const finalKey = roundKeys.filter(k=>k!=="r3rd").reduce((best,k)=> (best===null || roundNo(k)>roundNo(best)) ? k : best, null);
@@ -384,12 +409,12 @@ function renderBracket(){
   h+=`<div class="center-result"><div class="champion-box"><div class="champion-label">🏆 JUARA 1</div><div class="champion-name">${finalMatch&&finalMatch.winner?tname(finalMatch.winner):"Belum ditentukan"}</div></div>${finalMatch?matchHTML(finalMatch.id,"final"):''}${ms.r3rd?matchHTML("r3rd","bronze"):''}</div>`;
   document.getElementById("bracketEl").innerHTML=`<div class="bracket-flow"><svg class="flow-svg" aria-hidden="true"><defs><marker id="arrowNormal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z"></path></marker><marker id="arrowActive" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z"></path></marker></defs></svg>${h}</div>`;
   requestAnimationFrame(drawBracketConnectors);
-  document.getElementById("bracketTitle").textContent=`Bagan ${catLabel(key)} — ${n} Peserta`;
-  document.getElementById("bracketSubtitle").textContent=isJunior44(key)
+  document.getElementById("bracketTitle").textContent=`Bagan ${catLabel(key)} : ${n} Peserta`;
+  document.getElementById("bracketSubtitle").textContent=isDoubleElimination(key)
     ?`${n} peserta → ${Math.floor(n/2)} pertandingan → leaderboard ${n} tim berdasarkan poin → TOP 16 → 16 Besar → 8 Besar → Semifinal → Juara 1`
     :`${n} tim • ${Math.ceil(n/2)} match awal • Knockout menuju Juara 1`;
   const total=n,done=Object.values((state.results && state.results[key]) || {}).filter(x=>x&&x.winner).length;
-  document.getElementById("stats").innerHTML=isJunior44(key)
+  document.getElementById("stats").innerHTML=isDoubleElimination(key)
     ?`<div class="col-6 col-lg-3"><div class="small-box text-bg-primary"><div class="inner"><h3>${n}</h3><p>Total Peserta</p></div><i class="small-box-icon bi bi-people-fill"></i></div></div><div class="col-6 col-lg-3"><div class="small-box text-bg-info"><div class="inner"><h3>${Math.floor(n/2)}</h3><p>Pertandingan Awal</p></div><i class="small-box-icon bi bi-diagram-3"></i></div></div><div class="col-6 col-lg-3"><div class="small-box text-bg-success"><div class="inner"><h3>16</h3><p>Top 16 Berdasarkan Poin</p></div><i class="small-box-icon bi bi-trophy-fill"></i></div></div><div class="col-6 col-lg-3"><div class="small-box text-bg-warning"><div class="inner"><h3>${done}</h3><p>Pertandingan Selesai</p></div><i class="small-box-icon bi bi-check2-circle"></i></div></div>`
     :`<div class="col-6 col-lg-3"><div class="small-box text-bg-primary"><div class="inner"><h3>${total}</h3><p>Total Tim</p></div><i class="small-box-icon bi bi-people-fill"></i></div></div><div class="col-6 col-lg-3"><div class="small-box text-bg-success"><div class="inner"><h3>${done}</h3><p>Pertandingan Selesai</p></div><i class="small-box-icon bi bi-check2-circle"></i></div></div><div class="col-6 col-lg-3"><div class="small-box text-bg-info"><div class="inner"><h3>${total-1}</h3><p>Kemenangan Menuju Juara</p></div><i class="small-box-icon bi bi-trophy-fill"></i></div></div><div class="col-6 col-lg-3"><div class="small-box text-bg-warning"><div class="inner"><h3>${Math.ceil(n/2)}</h3><p>Match Awal</p></div><i class="small-box-icon bi bi-diagram-3"></i></div></div>`;
 }
@@ -403,7 +428,7 @@ function drawBracketConnectors(){
   const matches=getMatches(),ns="http://www.w3.org/2000/svg",fr=flow.getBoundingClientRect();
   svg.setAttribute("viewBox",`0 0 ${Math.max(flow.scrollWidth,fr.width)} ${Math.max(flow.scrollHeight,fr.height)}`);svg.setAttribute("width",Math.max(flow.scrollWidth,fr.width));svg.setAttribute("height",Math.max(flow.scrollHeight,fr.height));svg.querySelectorAll(".generated-flow,.flow-stage-label").forEach(e=>e.remove());
   const key=currentCategory;
-  const isJ=isJunior44(key);
+  const isJ=isDoubleElimination(key);
   // Kumpulkan match per round number
   const byRound={};
   Object.values(matches).forEach(m=>{
@@ -467,9 +492,9 @@ function statusOf(n){
   if(finalMatch&&finalMatch.winner===n)return"JUARA1";
   if(finalMatch&&finalMatch.winner&&(finalMatch.a===n||finalMatch.b===n))return"JUARA2";
   if(r3&&r3.winner===n)return"JUARA3";
-  if(isJunior44(currentCategory)){
-    const rank=juniorLeaderboardIds(),pos=rank.indexOf(n)+1;
-    if(!juniorOpeningComplete())return"MASIH BERPELUANG";
+  if(isDoubleElimination(currentCategory)){
+    const rank=doubleEliminationLeaderboardIds(),pos=rank.indexOf(n)+1;
+    if(!doubleEliminationOpeningComplete())return"MASIH BERPELUANG";
     if(pos>0&&pos<=16&&!Object.values(ms).some(m=>(m.a===n||m.b===n)&&m.winner))return"LOLOS 16 BESAR";
     if(pos>16)return"TIDAK LOLOS";
   }
@@ -480,8 +505,8 @@ function renderLeaderboard(){
   const key=currentCategory;
   const totals={};
   CATEGORIES[key].teams.forEach((_,i)=>totals[i+1]=0);
-  if(isJunior44(key)){
-    const stats=juniorSelectionStats(),arr=juniorLeaderboardIds(),complete=juniorOpeningComplete();
+  if(isDoubleElimination(key)){
+    const stats=doubleEliminationSelectionStats(),arr=doubleEliminationLeaderboardIds(),complete=doubleEliminationOpeningComplete();
     document.getElementById("leaderEl").innerHTML=arr.map((n,i)=>{
       const st=statusOf(n),qualified=complete&&i<16;
       const cls=qualified?"text-bg-success":complete?"text-bg-danger":"text-bg-secondary";
@@ -719,9 +744,9 @@ function showTeamDetail(n,rank=null){
   document.getElementById("teamDetailTitle").textContent=t.name||"Nama Tim";
   document.getElementById("teamDetailNo").textContent=`TEAM ${t.id}`;
   document.getElementById("teamDetailCategory").textContent=catLabel(currentCategory);
-  document.getElementById("teamDetailSchool").textContent=t.name||"—";
-  document.getElementById("teamDetailP1").textContent=t.p1||"—";
-  document.getElementById("teamDetailP2").textContent=t.p2||"—";
+  document.getElementById("teamDetailSchool").textContent=t.name||":";
+  document.getElementById("teamDetailP1").textContent=t.p1||":";
+  document.getElementById("teamDetailP2").textContent=t.p2||":";
   const pw=document.getElementById("teamDetailPhotoWrap"),pi=document.getElementById("teamDetailPhoto");
   if(pw&&pi){ if(t.photo){ pi.src=t.photo; pw.hidden=false; } else { pw.hidden=true; pi.removeAttribute("src"); } }
   showModal("teamDetailBackdrop");
@@ -759,7 +784,7 @@ async function doLogout(){
   renderAll();
 }
 
-// ---- Reset password (lupa password) ----
+// ---- Enhanced reset password (lupa password) ----
 function openResetPasswordModal(){
   const s1=document.getElementById('resetStep1'), s2=document.getElementById('resetStep2');
   if(s1) s1.style.display='';
@@ -771,12 +796,21 @@ function openResetPasswordModal(){
   const u=document.getElementById('resetUsername'); if(u) u.value=document.getElementById('loginUsername')?.value.trim()||'';
   closeLoginModal();
   showModal('resetPasswordBackdrop');
+  // Show enhanced password reset info
+  setTimeout(() => {
+    const infoMsg = document.createElement('div');
+    infoMsg.className = 'alert alert-info small mt-2';
+    infoMsg.textContent = 'Masukkan username dan kami akan memberikan token reset password yang aman.';
+    const container = document.getElementById('resetStep1');
+    if (container) container.appendChild(infoMsg);
+  }, 100);
 }
 function closeResetPasswordModal(){ hideModal('resetPasswordBackdrop'); }
 async function handleForgotPasswordStep1(){
   const username=document.getElementById('resetUsername').value.trim();
   const st=document.getElementById('resetStep1Status');
   if(!username){ if(st) st.textContent='Username wajib diisi.'; return; }
+  if(st) st.textContent='Memproses...';
   try{
     const data=await API.forgotPassword(username);
     document.getElementById('resetToken').value=data.reset_token;
@@ -784,19 +818,281 @@ async function handleForgotPasswordStep1(){
     document.getElementById('resetStep2').style.display='';
     document.getElementById('resetStep1Btn').style.display='none';
     document.getElementById('resetStep2Btn').style.display='';
-    if(st) st.textContent='';
-  }catch(e){ if(st) st.textContent='Gagal: '+e.message; }
+    if(st) st.textContent='✅ Token reset password berhasil generated!';
+    // Show token details
+    const tokenInfo = document.createElement('div');
+    tokenInfo.className = 'small text-info mt-1';
+    tokenInfo.innerHTML = `<strong>Token:</strong> ${data.reset_token}<br><strong>Berlaku:</strong> 1 jam<br><strong>Digunakan:</strong> sekali pakai`;
+    const container = document.getElementById('resetStep2');
+    if (container) container.appendChild(tokenInfo);
+  }catch(e){ if(st) st.textContent='❌ Gagal: '+e.message; }
 }
 async function handleResetPasswordStep2(){
   const token=document.getElementById('resetToken').value.trim();
   const newPassword=document.getElementById('resetNewPassword').value;
   const st=document.getElementById('resetStep2Status');
   if(!token||!newPassword){ if(st) st.textContent='Token dan password baru wajib diisi.'; return; }
+  if(st) st.textContent='Memproses reset password...';
   try{
     await API.resetPassword(token,newPassword);
     closeResetPasswordModal();
-    alert('Password berhasil diubah. Silakan login dengan password baru.');
-  }catch(e){ if(st) st.textContent='Gagal: '+e.message; }
+    alert('✅ Password berhasil diubah! Silakan login dengan password baru Anda.');
+    // Show success message with additional info
+    setTimeout(() => {
+      const successMsg = document.createElement('div');
+      successMsg.className = 'alert alert-success small mt-2';
+      successMsg.innerHTML = 'Semua sesi pengguna telah dinonaktifkan untuk keamanan. Login dengan password baru Anda.';
+      document.body.appendChild(successMsg);
+      setTimeout(() => successMsg.remove(), 3000);
+    }, 100);
+  }catch(e){ if(st) st.textContent='❌ Gagal: '+e.message; }
+}
+
+// ---- Enhanced user management in settings ----
+async function renderUserManagement(){
+  const el=document.getElementById('settingsTableBody'); if(!el)return;
+  if(!document.getElementById('pengaturan')||!document.getElementById('pengaturan').classList.contains('active'))return;
+  
+  // Add user management section to settings
+  let userManagementHTML = '';
+  if(isAdmin()){
+    userManagementHTML = `
+      <tr class="table-active">
+        <td colspan="3">
+          <div class="d-flex justify-content-between align-items-center">
+            <strong>👥 Manajemen Pengguna</strong>
+            <button class="btn btn-sm btn-primary" onclick="openUserModal()">+ Tambah User</button>
+          </div>
+        </td>
+      </tr>
+      <tr id="userListHeader" class="d-none">
+        <th>No</th>
+        <th>Username</th>
+        <th>Role</th>
+        <th>Aksi</th>
+      </tr>`;
+  }
+  
+  const currentUserManagement = document.getElementById('userManagementSection');
+  if (currentUserManagement) {
+    currentUserManagement.remove();
+  }
+  
+  if(isAdmin()){
+    // Fetch users list
+    let usersHTML = '<tr class="text-center text-muted"><td colspan="4">Memuat pengguna...</td></tr>';
+    try {
+      const users = await API.getUsers ? await API.getUsers() : [];
+      if (users.length > 0) {
+        usersHTML = users.map((user, index) => `
+          <tr>
+            <td>${index + 1}</td>
+            <td><code>${user.username}</code></td>
+            <td><span class="badge ${getRoleBadgeClass(user.role)}">${user.role}</span></td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary" onclick="editUser('${user.username}')">Edit</button>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${user.username}')">Hapus</button>
+            </td>
+          </tr>
+        `).join('');
+      } else {
+        usersHTML = '<tr class="text-center text-muted"><td colspan="4">Tidak ada pengguna.</td></tr>';
+      }
+    } catch (e) {
+      usersHTML = `<tr class="text-center text-muted"><td colspan="4">Error: ${e.message}</td></tr>`;
+    }
+    
+    el.innerHTML = userManagementHTML + '<tr id="userManagementSection"><th>No</th><th>Username</th><th>Role</th><th>Aksi</th></tr>' + usersHTML;
+  }
+}
+
+function getRoleBadgeClass(role) {
+  const roleClasses = {
+    'admin': 'bg-danger',
+    'user': 'bg-primary', 
+    'viewer': 'bg-info',
+    'guest': 'bg-secondary'
+  };
+  return roleClasses[role] || 'bg-dark';
+}
+
+function openUserModal(){
+  // Show user modal for creating/editing users
+  showModal('userModalBackdrop');
+  // Initialize user modal with default values
+  document.getElementById('userUsername').value = '';
+  document.getElementById('userPassword').value = '';
+  document.getElementById('userRole').value = 'user';
+  document.getElementById('userStatus').value = 'active';
+}
+
+async function saveUser(){
+  const username = document.getElementById('userUsername').value.trim();
+  const password = document.getElementById('userPassword').value;
+  const role = document.getElementById('userRole').value;
+  const status = document.getElementById('userStatus').value;
+  
+  if(!username || !password) {
+    alert('Username dan password wajib diisi');
+    return;
+  }
+  
+  try {
+    await API.createUser(username, password, role);
+    closeUserModal();
+    alert('User berhasil dibuat/diperbarui');
+    renderUserManagement();
+  } catch (e) {
+    alert('Gagal menyimpan user: ' + e.message);
+  }
+}
+
+function closeUserModal(){
+  hideModal('userModalBackdrop');
+}
+
+async function editUser(username) {
+  try {
+    // Get user details (assuming API.getUser endpoint exists)
+    const user = await API.getUser ? await API.getUser(username) : null;
+    if (user) {
+      document.getElementById('userUsername').value = user.username;
+      document.getElementById('userPassword').value = ''; // Don't pre-fill password for security
+      document.getElementById('userRole').value = user.role;
+      document.getElementById('userStatus').value = user.status || 'active';
+      openUserModal();
+    }
+  } catch (e) {
+    alert('Gagal memuat data user: ' + e.message);
+  }
+}
+
+async function deleteUser(username) {
+  if (confirm(`Yakin ingin menghapus user "${username}"?`)) {
+    try {
+      await API.deleteUser ? await API.deleteUser(username) : await API.revokeSession(username);
+      alert('User berhasil dihapus');
+      renderUserManagement();
+    } catch (e) {
+      alert('Gagal menghapus user: ' + e.message);
+    }
+  }
+}
+
+// ---- Password change for current user ----
+function openChangePasswordModal(){
+  if(!AUTH_USER) return;
+  
+  // Show password change modal for current user
+  showModal('changePasswordBackdrop');
+  // Clear previous error messages
+  ['changePasswordCurrent', 'changePasswordNew', 'changePasswordConfirm'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '';
+  });
+}
+
+function closeChangePasswordModal(){
+  hideModal('changePasswordBackdrop');
+}
+
+async function handleChangeCurrentPassword(){
+  const currentPass = document.getElementById('changePasswordCurrent').value;
+  const newPass = document.getElementById('changePasswordNew').value;
+  const confirmPass = document.getElementById('changePasswordConfirm').value;
+  const errorEl = document.getElementById('changePasswordError');
+  
+  if(!currentPass || !newPass || !confirmPass) {
+    if(errorEl) errorEl.textContent = 'Semua field password wajib diisi';
+    return;
+  }
+  
+  if(newPass !== confirmPass) {
+    if(errorEl) errorEl.textContent = 'Password baru dan konfirmasi tidak cocok';
+    return;
+  }
+  
+  if(newPass.length < 8) {
+    if(errorEl) errorEl.textContent = 'Password baru minimal 8 karakter';
+    return;
+  }
+  
+  try {
+    await API.changePassword(currentPass, newPass);
+    closeChangePasswordModal();
+    alert('✅ Password berhasil diubah! Semua sesi telah dinonaktifkan untuk keamanan.');
+    // Logout user after password change
+    setTimeout(async () => {
+      await API.logout();
+      AUTH_USER = null;
+      applyAuthUI();
+      renderAll();
+    }, 100);
+  } catch (e) {
+    if(errorEl) errorEl.textContent = 'Gagal mengubah password: ' + e.message;
+  }
+}
+
+// ---- Session management for users ----
+async function renderUserSessions(){
+  const el=document.getElementById('settingsTableBody'); if(!el)return;
+  
+  if(!isAdmin()) return;
+  
+  let sessionsHTML = '';
+  
+  // Add current user session info
+  if (AUTH_USER) {
+    sessionsHTML += `
+      <tr class="table-active">
+        <td colspan="4">
+          <strong>👤 ${AUTH_USER.username}</strong> (${AUTH_USER.role})
+          <span class="badge bg-success">Login Aktif</span>
+          <small class="text-muted d-block">Token: ${AUTH_USER.token || 'N/A'}</small>
+        </td>
+      </tr>`;
+  }
+  
+  try {
+    const sessions = await API.getSessions();
+    const otherSessions = sessions.filter(s => s.user_id !== AUTH_USER?.id);
+    
+    if (otherSessions.length > 0) {
+      sessionsHTML += `
+        <tr class="table-light">
+          <td colspan="4">
+            <strong>🔒 Sesi Lain</strong>
+          </td>
+        </tr>
+        ${otherSessions.map((session, index) => `
+          <tr>
+            <td>${index + 1}</td>
+            <td><code>${session.username || 'N/A'}</code></td>
+            <td><small class="text-muted">${new Date(session.created_at).toLocaleString()}</small></td>
+            <td>
+              <button class="btn btn-sm btn-outline-danger" onclick="revokeUserSession('${session.token}')">Tarik</button>
+            </td>
+          </tr>
+        `).join('')}
+      `;
+    }
+  } catch (e) {
+    // Silent fail for session rendering
+  }
+  
+  if (sessionsHTML) {
+    el.innerHTML = el.innerHTML + '<tr id="sessionManagementSection"><th>No</th><th>User</th><th>Waktu</th><th>Aksi</th></tr>' + sessionsHTML;
+  }
+}
+
+async function revokeUserSession(token) {
+  try {
+    await API.revokeSession(token);
+    alert('Sesi berhasil ditarik');
+    renderUserSessions();
+  } catch (e) {
+    alert('Gagal menarik sesi: ' + e.message);
+  }
 }
 
 async function init(){
@@ -814,7 +1110,7 @@ async function init(){
         };
       });
     } else {
-      CATEGORIES.junior = {key:"junior",label:"Junior",schema:"junior44",count:44,sort_order:1,teams:[]};
+      CATEGORIES.junior = {key:"junior",label:"Junior",schema:"double_elimination",count:44,sort_order:1,teams:[]};
       CATEGORIES.senior = {key:"senior",label:"Senior",schema:"knockout",count:16,sort_order:2,teams:[]};
     }
     const keys = Object.keys(CATEGORIES).sort((a,b)=>(CATEGORIES[a].sort_order||0)-(CATEGORIES[b].sort_order||0));
@@ -835,7 +1131,7 @@ async function init(){
     applyAuthUI();
   }catch(e){
     console.error("Gagal inisialisasi aplikasi:", e);
-    if(!CATEGORIES.junior) CATEGORIES.junior = {key:"junior",label:"Junior",schema:"junior44",count:44,sort_order:1,teams:generateDefaultTeams(44,"Junior")};
+    if(!CATEGORIES.junior) CATEGORIES.junior = {key:"junior",label:"Junior",schema:"double_elimination",count:44,sort_order:1,teams:generateDefaultTeams(44,"Junior")};
     if(!CATEGORIES.senior) CATEGORIES.senior = {key:"senior",label:"Senior",schema:"knockout",count:16,sort_order:2,teams:generateDefaultTeams(16,"Senior")};
     if(!currentCategory) currentCategory = "junior";
     AUTH_USER=null;
@@ -911,7 +1207,7 @@ async function saveCategory(){
   const order=parseInt(document.getElementById("catOrderInput").value,10)||0;
   if(!label)return alert("Label kategori wajib diisi.");
   if(!key && !document.getElementById("catKeyInput").value.trim())return alert("Key kategori wajib diisi (huruf kecil, angka, underscore).");
-  const payload={label,schema,team_count:empty?0:(isNaN(count)?(schema==="junior44"?44:16):count),sort_order:order};
+  const payload={label,schema,team_count:empty?0:(isNaN(count)?(schema==="double_elimination"?44:16):count),sort_order:order};
   if(!key)payload.empty=empty;
   try{
     if(key){
@@ -944,7 +1240,7 @@ async function reloadCategories(){
       CATEGORIES[c.key]={key:c.key,label:c.label,schema:c.schema,count:c.team_count,teams:[],sort_order:c.sort_order};
     });
   }else{
-    CATEGORIES.junior={key:"junior",label:"JUNIOR",schema:"junior44",count:44,teams:[],sort_order:1};
+    CATEGORIES.junior={key:"junior",label:"JUNIOR",schema:"double_elimination",count:44,teams:[],sort_order:1};
     CATEGORIES.senior={key:"senior",label:"SENIOR",schema:"knockout",count:16,teams:[],sort_order:2};
   }
   const keys=Object.keys(CATEGORIES).sort((a,b)=>(CATEGORIES[a].sort_order||0)-(CATEGORIES[b].sort_order||0));

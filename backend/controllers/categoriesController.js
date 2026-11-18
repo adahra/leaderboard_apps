@@ -27,10 +27,10 @@ exports.createCategory = (req, res) => {
     const { key, label, schema, team_count, sort_order, empty } = req.body || {};
     if (!key || !label || !schema) return res.status(400).json({ error: 'key, label, dan schema wajib diisi.' });
     if (!/^[a-z0-9_]+$/.test(key)) return res.status(400).json({ error: 'key harus huruf kecil, angka, atau underscore.' });
-    if (!['junior44', 'knockout'].includes(schema)) return res.status(400).json({ error: 'schema harus junior44 atau knockout.' });
+    if (!['double_elimination', 'knockout'].includes(schema)) return res.status(400).json({ error: 'schema harus double_elimination atau knockout.' });
     const isEmpty = empty === true || empty === 'true';
     const parsedCount = Number(team_count);
-    const cnt = isEmpty ? 0 : (Number.isFinite(parsedCount) && parsedCount > 0 ? parsedCount : (schema === 'junior44' ? 44 : 16));
+    const cnt = isEmpty ? 0 : (Number.isFinite(parsedCount) && parsedCount > 0 ? parsedCount : (schema === 'double_elimination' ? 44 : 16));
     db.prepare('INSERT INTO categories (key,label,schema,team_count,sort_order) VALUES (?,?,?,?,?)').run(key, label, schema, cnt, Number(sort_order) || 0);
     if (!isEmpty) seedTeams(key, cnt, label.toUpperCase());
     db.logAudit(req.user?.username, 'category.create', key, JSON.stringify({ label, schema, team_count: cnt }));
@@ -47,7 +47,7 @@ exports.updateCategory = (req, res) => {
     const { label, schema, team_count, sort_order } = req.body || {};
     const cat = db.prepare('SELECT * FROM categories WHERE key=?').get(key);
     if (!cat) return res.status(404).json({ error: 'Kategori tidak ditemukan.' });
-    if (schema && !['junior44', 'knockout'].includes(schema)) return res.status(400).json({ error: 'schema harus junior44 atau knockout.' });
+    if (schema && !['double_elimination', 'knockout'].includes(schema)) return res.status(400).json({ error: 'schema harus double_elimination atau knockout.' });
     const newLabel = label !== undefined ? label : cat.label;
     const newSchema = schema !== undefined ? schema : cat.schema;
     const newCount = team_count !== undefined ? (Number.isFinite(Number(team_count)) ? Number(team_count) : cat.team_count) : cat.team_count;
