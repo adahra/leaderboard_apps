@@ -1,10 +1,9 @@
 # Leaderboard Apps
-
-Aplikasi leaderboard turnamen untuk kategori **junior44** dan **knockout**, dengan backend Express + SQLite (`better-sqlite3`) dan frontend statis.
+Aplikasi leaderboard turnamen untuk kategori **junior** dan **senior**, dengan backend Express + SQLite (`better-sqlite3`) dan frontend statis.
 
 ## Fitur
 
-- Bagan turnamen dinamis untuk kategori `junior44` dan `knockout`.
+- Bagan turnamen dinamis untuk kategori `junior` dan `senior`.
 - Input hasil pertandingan, leaderboard, juara, dan data tim.
 - Kategori kompetisi dapat ditambah, edit, dan hapus dari UI.
 - Data disimpan di SQLite (`data/leaderboard.db`).
