@@ -115,7 +115,6 @@ const API = {
   async me() {
     return this.request('/api/auth/me');
   },
-  // ---- Forgot password ----
   async forgotPassword(username) {
     const data = await this.request('/api/auth/forgot-password', {
       method: 'POST',
@@ -125,7 +124,6 @@ const API = {
     return data;
   },
 
-  // ---- Reset password ----
   async resetPassword(token, newPassword) {
     const data = await this.request('/api/auth/reset-password', {
       method: 'POST',
@@ -134,7 +132,6 @@ const API = {
     });
     return data;
   },
-  // ---- Session management (admin) ----
   async getSessions() {
     return this.request('/api/auth/sessions');
   },

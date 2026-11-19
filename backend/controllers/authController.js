@@ -47,7 +47,6 @@ function createUserRecord(username, password, role) {
   const hash = hashPassword(password, salt);
   db.prepare('INSERT INTO users (username, password_hash, salt, role) VALUES (?,?,?,?)').run(username, hash, salt, role);
 }
-// ---- Reset password helpers ----
 function generateResetToken() {
   return crypto.randomBytes(32).toString('hex');
 }
@@ -137,7 +136,6 @@ exports.logout = (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-// ---- Password reset handlers ----
 exports.forgotPassword = (req, res) => {
   try {
     const { username } = req.body || {};
@@ -202,7 +200,6 @@ exports.me = (req, res) => {
   res.json({ user });
 };
 
-// ---- Session management (admin) ----
 exports.getSessions = (req, res) => {
   try {
     const rows = db.prepare(`

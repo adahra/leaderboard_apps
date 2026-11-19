@@ -12,7 +12,6 @@ const dbPath = path.join(DATA_DIR, 'leaderboard.db');
 const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
 
-// ---- Schema ----
 db.exec(`
 CREATE TABLE IF NOT EXISTS teams (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -96,7 +95,6 @@ CREATE TABLE IF NOT EXISTS audit_log (
 CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log (created_at);
 `);
 
-// ---- Migration: buang CHECK(category IN ('single_elimination','double_elimination')) agar kategori custom diperbolehkan ----
 (function migrateTeamsConstraint() {
   const row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='teams'").get();
   if (!row || !row.sql) return;
@@ -127,7 +125,6 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log (created_at);
   }
 })();
 
-// ---- Migration: tambah kolom jadwal/status pada results (DB lama) ----
 (function migrateResultsColumns() {
   const cols = db.prepare('PRAGMA table_info(results)').all().map((c) => c.name);
   if (!cols.includes('scheduled_at')) db.exec('ALTER TABLE results ADD COLUMN scheduled_at TEXT');
@@ -137,17 +134,14 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log (created_at);
   if (!hcols.includes('live_url')) db.exec('ALTER TABLE result_history ADD COLUMN live_url TEXT');
 })();
 
-// ---- Migration: tambah kolom archived pada categories (DB lama) ----
 (function migrateCategoriesArchived() {
   const cols = db.prepare('PRAGMA table_info(categories)').all().map((c) => c.name);
   if (!cols.includes('archived')) db.exec('ALTER TABLE categories ADD COLUMN archived INTEGER NOT NULL DEFAULT 0');
 })();
-// ---- Migration: tambah kolom photo_url pada teams (DB lama) ----
 (function migrateTeamsPhoto() {
   const cols = db.prepare('PRAGMA table_info(teams)').all().map((c) => c.name);
   if (!cols.includes('photo_url')) db.exec("ALTER TABLE teams ADD COLUMN photo_url TEXT DEFAULT ''");
 })();
-// ---- Migration: tambah kolom reset_token & reset_token_expires pada users (DB lama) ----
 (function migrateResetTokenColumns() {
   const cols = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
   if (!cols.includes('reset_token')) db.exec('ALTER TABLE users ADD COLUMN reset_token TEXT');
@@ -160,7 +154,6 @@ const seed = db.prepare(`
 seed.run('junior', 'JUNIOR', 'double_elimination', 44, 1);
 seed.run('senior', 'SENIOR', 'knockout', 16, 2);
 
-// ---- Seed default users ----
 function seedUser(username, password, role) {
   const exists = db.prepare('SELECT id FROM users WHERE username=?').get(username);
   if (exists) return;

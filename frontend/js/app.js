@@ -1,5 +1,4 @@
 
-// CATEGORIES: map key -> {label, count, teams:[], schema, sort_order}
 // Diisi dari backend (API.getCategories) di init(). Fallback junior/senior jika gagal.
 const CATEGORIES = {};
 function ensureCategories(){
@@ -39,7 +38,6 @@ document.getElementById('darkToggle')?.addEventListener('click', ()=>{
   localStorage.setItem('lb_theme', next);
 });
 let saveTimer=null;
-// Schema helpers
 function schemaFor(key){ return (CATEGORIES[key]||{}).schema || "knockout"; }
 function isDoubleElimination(key){ return schemaFor(key) === "double_elimination"; }
 function isKnockout(key){ return schemaFor(key) === "knockout"; }
@@ -784,7 +782,6 @@ async function doLogout(){
   renderAll();
 }
 
-// ---- Enhanced reset password (lupa password) ----
 function openResetPasswordModal(){
   const s1=document.getElementById('resetStep1'), s2=document.getElementById('resetStep2');
   if(s1) s1.style.display='';
@@ -848,7 +845,6 @@ async function handleResetPasswordStep2(){
   }catch(e){ if(st) st.textContent='❌ Gagal: '+e.message; }
 }
 
-// ---- Enhanced user management in settings ----
 async function renderUserManagement(){
   const el=document.getElementById('settingsTableBody'); if(!el)return;
   if(!document.getElementById('pengaturan')||!document.getElementById('pengaturan').classList.contains('active'))return;
@@ -979,7 +975,6 @@ async function deleteUser(username) {
   }
 }
 
-// ---- Password change for current user ----
 function openChangePasswordModal(){
   if(!AUTH_USER) return;
   
@@ -1033,7 +1028,6 @@ async function handleChangeCurrentPassword(){
   }
 }
 
-// ---- Session management for users ----
 async function renderUserSessions(){
   const el=document.getElementById('settingsTableBody'); if(!el)return;
   
@@ -1295,7 +1289,6 @@ async function renderPengaturan(){
   renderSessions();
 }
 
-// ---- Pengaturan global (key-value settings) ----
 function settingValueText(v){
   if(v===null||v===undefined)return"";
   return typeof v==="object" ? JSON.stringify(v) : String(v);
@@ -1348,7 +1341,6 @@ async function deleteSettingKey(key){
   }catch(e){alert("Gagal menghapus setting: "+e.message);}
 }
 
-// ---- Sesi aktif (admin) ----
 async function renderSessions(){
   const el=document.getElementById("sessionsTableBody"); if(!el)return;
   if(!document.getElementById("pengaturan")?.classList.contains("active"))return;
