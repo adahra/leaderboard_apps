@@ -134,25 +134,6 @@ function advanceWinner(m){
   berpeluang masuk TOP 16. Setelah seluruh 22 match selesai, ranking 1-16
   masuk ke babak 16 Besar.
 */
-function doubleEliminationSelectionStats(){
-  const key=currentCategory;
-  const n=teamCount(key), m=Math.floor(n/2), stats={};
-  for(let i=1;i<=n;i++)stats[i]={id:i,played:false,wins:0,points:0,against:0,diff:0,matchIndex:0};
-  const results = (state.results && state.results[key]) || {};
-  for(let i=1;i<=m;i++){
-    const id="r44m"+i,rec=results[id];
-    if(!rec||!rec.a||!rec.b||rec.sa===""||rec.sb==="")continue;
-    const a=Number(rec.sa),b=Number(rec.sb),A=stats[rec.a],B=stats[rec.b];
-    A.played=B.played=true;
-    A.points=a;B.points=b;
-    A.against=b;B.against=a;
-    A.diff=a-b;B.diff=b-a;
-    A.matchIndex=B.matchIndex=i;
-    if(rec.winner===rec.a)A.wins=1;
-    if(rec.winner===rec.b)B.wins=1;
-  }
-  return stats;
-}
 // New functions for double elimination (renamed from junior versions)
 function doubleEliminationSelectionStats(){
   const key=currentCategory;

@@ -147,6 +147,10 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log (created_at);
   if (!cols.includes('reset_token')) db.exec('ALTER TABLE users ADD COLUMN reset_token TEXT');
   if (!cols.includes('reset_token_expires')) db.exec('ALTER TABLE users ADD COLUMN reset_token_expires DATETIME');
 })();
+(function migrateUsersLastLogin() {
+  const cols = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
+  if (!cols.includes('last_login')) db.exec('ALTER TABLE users ADD COLUMN last_login DATETIME');
+})();
 const seed = db.prepare(`
   INSERT OR IGNORE INTO categories (key, label, schema, team_count, sort_order)
   VALUES (?, ?, ?, ?, ?)

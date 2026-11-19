@@ -116,6 +116,7 @@ exports.login = (req, res) => {
     const hash = hashPassword(password, user.salt);
     if (hash !== user.password_hash) { recordLoginFailure(req); return res.status(401).json({ error: 'Username atau password salah.' }); }
     clearLoginAttempts(req);
+    db.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?').run(user.id);
     db.logAudit(user.username, 'auth.login', user.username, null);
     const token = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
