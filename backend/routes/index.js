@@ -7,6 +7,7 @@ const resultsRoutes = require('./results');
 const settingsRoutes = require('./settings');
 const categoriesRoutes = require('./categories');
 const authRoutes = require('./auth');
+const schedulingRoutes = require('./scheduling');
 const auth = require('../controllers/authController');
 
 router.get('/health', (req, res) => {
@@ -32,5 +33,6 @@ router.use('/teams', teamsRoutes);
 router.use('/results', resultsRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/categories', categoriesRoutes);
+router.use('/scheduling', schedulingRoutes);
 
 module.exports = router;
